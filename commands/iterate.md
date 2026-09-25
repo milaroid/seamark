@@ -110,7 +110,16 @@ Brief log of what each loop found and fixed (1-2 lines per loop).
 Use `PASSED` or `BLOCKED` for the final verdict.
 
 - `PASSED` requires all four exit-predicate clauses = yes (or `n/a` for clause 2 when no review was run, and `n/a` for clause 4 when no `.m/PRD-*.md` exists for this change).
-- `BLOCKED` means at least one clause failed. Name which one(s) and why.
+- `BLOCKED` means at least one clause failed. List every unmet clause by name with the evidence that it is unmet, as a bullet per clause:
+
+  ```
+  Unmet clauses:
+  - Tests green: no — {command}, exit {code}, {N} failing: {names}
+  - Zero critical findings: no — {count} critical: {short titles}
+  ```
+
+  A `BLOCKED` verdict that does not enumerate its unmet clauses is incomplete. The
+  next stage reads this list to know what to fix.
 
 ## Learning Signal
 

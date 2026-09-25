@@ -7,3 +7,6 @@
 *.swp
 __pycache__/
 *.pyc
+
+# claude plugin eval run output — every run writes a timestamped report here
+evals/results/

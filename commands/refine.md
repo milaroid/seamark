@@ -8,7 +8,7 @@ effort: xhigh
 
 Turn a raw request into an implementation-ready specification by **actively grilling** the request — not defensively checking it. This is the highest-leverage stage in the pipeline: a weak refine silently collapses plans to the lowest-common-denominator solution, and a strong one makes every downstream stage cheaper.
 
-The posture is *"surface ambiguity proactively"*, not *"ask only when something would waste time"*. The first draft of any spec is almost always wrong in ways the requester cannot see yet.
+Surface ambiguity proactively, resolve facts with tools, and ask for decisions that remain outside the supplied requirements or delegation. Preserve settled choices across stages instead of reopening them as confirmation questions.
 
 ## Input
 
@@ -37,11 +37,14 @@ Read these first when available:
 This skill participates in the `/m:develop` phase gate. Follow this
 protocol on every invocation, including standalone runs:
 
+If the user explicitly requests no file writes or chat-only output, skip marker and PRD writes, deliver in chat, and do not claim a persisted phase completion.
+
 1. On entry, immediately after reading context sources: run
    `mkdir -p .m && touch .m/phase-refine-started` via Bash.
-2. On successful completion (spec delivered, no BLOCK): run
+2. On successful completion (spec ready, no unresolved user-intent decision): run
    `touch .m/phase-refine-done`.
-3. On abort, hard-block, or unresolved gap: leave `-started` in place
+3. A provisional specification is useful output, but it is not phase completion.
+   On abort, hard-block, or unresolved user-intent gap: leave `-started` in place
    and do NOT write `-done`. The pipeline will refuse to advance.
 
 If `.m/DEVELOP_ACTIVE` is present and its `current_phase:` line does not
@@ -49,13 +52,13 @@ read `refine`, stop and tell the user — the pipeline is out of sync.
 
 ### Phase 0: Optimal-Version Reframe (grill opener)
 
-Before analyzing anything, ask the requester:
+When the desired end state is missing or ambiguous, ask the requester:
 
 > *"If time and labor were not a consideration, what would the optimal version of this look like? Don't plan — just describe the end state."*
 
 Their answer (or the absence of one) is the anchor for the rest of the refine. The goal is to surface the *real* target before assumptions collapse it. Per community research: default AI planning assumes a solo dev with two jobs and no scaffolds, so the first plan is always smaller than it should be. The optimal-version reframe forces a truer anchor.
 
-Skip this phase only when the request is a trivial bug fix with an obvious scope.
+When the requester already supplied an explicit end state, use it as the anchor without asking them to restate it. Still inspect the requirements and affected code; skipping a redundant question does not skip analysis.
 
 ### Phase 1: Analysis
 
@@ -80,12 +83,12 @@ Reuse known repo context from `.m/INDEX.md` and `.m/GAPS.md`.
 
 Every question that reaches the user MUST be prefixed `[USER-INTENT]` in the menu. If a question cannot wear the prefix cleanly, it is factual — go resolve it via tools instead.
 
-**Mandatory for anything larger than a trivial fix.** Do not skip this phase to save turns. The 3–5 question floor applies to `[USER-INTENT]` questions only. If the self-serve gate drains the candidate list below 3, emit fewer questions and a fuller Technical Context section — that is the correct outcome.
+**Inspect ambiguity on every request.** Ask only the unresolved `[USER-INTENT]` questions that affect the outcome, in batches of at most three. There is no question-count floor. Resolve factual issues with tools and routine implementation details within the authorized scope.
 
-**Complete-input fast path.** When the request is already complete and unambiguous — every candidate question drains through the self-serve gate and no `[USER-INTENT]` residue remains — do not manufacture gaps: run a single confirmation round restating the collapsed spec, and when no requester round-trip is possible, state the collapsed decisions as explicit assumptions and emit the full specification.
+**Complete-input fast path.** When the request is complete and no blocking `[USER-INTENT]` question remains, emit the specification and mark the phase done without a confirmation round. Honor explicit delegation for choices within its bounds and label them as delegated, not user-selected. An unavailable requester is not permission to invent product choices.
 
 1. **Validate file references** against actual repo state.
-2. **Emit 3–5 clarifying questions, each as a bounded menu** of 2–4 selectable options (plus an explicit "none of these / I'll describe it" escape hatch). No open-ended prose questions — menus force a decision and prevent runaway question trees. Format each as:
+2. **Emit up to three necessary clarifying questions, each as a bounded menu** of 2–4 selectable options (plus an explicit "none of these / I'll describe it" escape hatch). Format each as:
 
    ```
    Q{n}. {short question}
@@ -95,18 +98,46 @@ Every question that reaches the user MUST be prefixed `[USER-INTENT]` in the men
      D) Other — describe
    ```
 
-3. **Forced round-trip.** Do not accept the first spec without at least one grill round. Even if the answers all point the same way, restate the collapsed spec back to the requester and confirm.
-4. **Anti-agreement-theater.** If the requester's answer conflicts with what the codebase pattern would dictate, say so explicitly: *"You picked A, but the existing pattern in `file:line` is B. Confirm A is intentional?"* — do not silently go along with the first answer.
+3. **Question only the remaining decision.** Preserve prior answers across stages. Do not ask the requester to approve a restatement of a choice they already made or delegated.
+4. **Resolve contradictions.** If a requested choice conflicts with an inspected constraint, explain the consequence. Ask again only if the conflict leaves a material decision unresolved; a clear, feasible user choice takes precedence over a repo preference.
 
 ## Rules
 
-- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire refine. No shortcuts: do not skip Phase 0 (optimal-version reframe) for anything larger than a trivial bug, do not accept the first spec without at least one grill round, do not paraphrase a requirement to make it easier to satisfy. Use tools fully: validate every cited file path against actual repo state, fetch Jira via the `atlassian` MCP rather than improvising, prefer `context7` for library questions. Do not compress reasoning to save tokens — the grill is the value producer; collapsing it silently downgrades every downstream stage.
+- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire refine. Inspect ambiguity, preserve the requested outcome, and verify cited facts. Validate file paths, fetch Jira via the `atlassian` MCP rather than inventing acceptance criteria, and prefer `context7` for library questions. The complete-input fast path removes redundant questions, not analysis or verification.
 - Prefer concrete acceptance criteria over generic summaries
 - If UI work is involved, preserve the existing design system unless the user explicitly asks for a redesign
 - If repo health limits confidence, say so in Assumptions
 - Keep the refinement actionable enough to hand directly to `/m:plan` or `/m:implement`
 
 ## Output
+
+One observable test decides whether this run emits the specification: **is the
+goal determinate?** A goal is determinate when you can write an end state a
+reader would recognize as achieved or not achieved. "A logged-in user downloads
+the current filtered report as a .csv" is determinate. "The app is faster" is not.
+"Fully offline and permanently connected" is not, because no state satisfies both.
+
+**Determinate goal → emit the specification, in the same turn as the grill.**
+Every heading below is a REQUIRED slot. Emit each one with content, in this order.
+Open questions do not block this. Emit the bounded-menu questions first, then for
+each open question record the interpretation you are carrying under
+`### Assumptions` with its reason, and write the specification on those
+assumptions. Mark it `PROVISIONAL — pending answers to Q1..Qn` in the Goal slot.
+Keep the phase incomplete until those user-intent decisions are answered or explicitly delegated. The draft helps the requester answer; it does not authorize planning or implementation against the carried assumptions.
+A `[FACTUAL]` slot the repository cannot answer — the file is absent, the stack
+is unreadable, the working directory is empty — is likewise an assumption, never a
+reason to stop. A provisional specification shows the requester where their
+answers lead, which they correct far more cheaply than they recover a
+specification that was never written.
+
+**Indeterminate or self-contradictory goal → BLOCK.** Emit the bounded-menu
+questions and no specification, not even a provisional one. When the goal itself
+has no recognizable end state, or two stated constraints cannot both hold, there
+is no coherent thing to write a specification about, and assumptions cannot
+manufacture one. Name the conflict or the missing end state, and stop.
+
+The test runs once, on the goal, before you write anything. Open sub-decisions
+under a determinate goal are assumptions. An indeterminate goal is a block.
 
 Return:
 
@@ -131,4 +162,4 @@ Persist the refined specification so downstream stages — and `/m:iterate`'s ex
 
 1. Write the full **Refined Specification** to `.m/PRD-<slug>.md`, where `<slug>` is a short kebab-case identifier derived from the goal. Create `.m/` if missing. Use full prose (it is a downstream-consumed artifact); keep the chat output as the human-facing summary.
 2. In that file, the success-criteria section MUST use the exact heading `## 8. Success Criteria` (a numbered H2). `/m:iterate` clause 4 scans `.m/PRD-*.md` for that exact heading and gates `PASSED` on every listed condition, so the text must match. Each condition is a target-state predicate (exit code, observable flow, response code, latency bound), not an activity.
-3. When invoked as the refine phase of `/m:develop`, always persist so the iterate gate has a target. For a standalone quick spec the user explicitly wants kept in chat only, persistence may be skipped — in which case `/m:iterate` clause 4 resolves to `n/a`.
+3. Persist by default for downstream verification, preserving any `PROVISIONAL` status and unresolved questions. If the user explicitly requests chat-only output or no file writes, honor that request: emit the full spec in chat and do not write PRDs or phase markers. A chat-only request does not satisfy the persisted-artifact gate of an active delivery run; report that constraint instead of silently overriding the user.

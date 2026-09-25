@@ -13,6 +13,8 @@ Implement the approved plan or a clear direct request.
 
 Approved plan or implementation instructions: `$ARGUMENTS`
 
+Before source changes, check the plan's readiness and decision sources. A `PROVISIONAL` or `BLOCKED` plan, or an unresolved user-intent choice affecting the task, must return to planning without implementation. Do not treat an assistant-authored assumption as user approval. Confirmed requirements, choices within explicit delegation, and routine details derived within that scope may proceed when implementation itself was requested; do not ask for the same authorization again.
+
 ## Jira Context (run before implementation)
 
 If `$ARGUMENTS` contains a Jira reference, resolve and fetch it per `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md` **before** starting implementation. Treat Jira acceptance criteria as the verification target; if the implementation cannot satisfy all of them, list the gaps under **Deviations**.
@@ -76,6 +78,7 @@ This classification drives how aggressively to proceed vs pause for confirmation
 - Match established project patterns exactly
 - Reuse shared types, components, utilities, and services before creating new ones
 - Keep the change to the minimum that satisfies the request. Do not add features, refactor adjacent code, or make "improvements" beyond what was asked — a bug fix does not need the surrounding code cleaned up. The right amount of complexity is the minimum needed for the current task; do not introduce abstractions, configuration knobs, or defensive layers the request did not call for. Validate input only at system boundaries such as user input and external API responses, not at every internal call site.
+- Do not add test cases, code paths, or functionality that the plan did not specify. "Proportionate extras", "bonus coverage", and "while we are here" additions are scope violations, not deviations. If additional test cases or features would improve the change, escalate back to the plan stage as a plan defect. Deviations are for recording how you implemented a plan element differently than the plan described, not for adding elements the plan never named.
 - Solve the problem, not the test. Implement a solution that works correctly for all valid inputs, not only the cases the tests cover, and never hard-code expected values to make a test pass. Tests verify correctness; they do not define the solution. If a test itself looks wrong, flag it instead of coding to satisfy it.
 - Prefer tests first when proportionate, especially for business logic, auth, money, parsing, or data integrity
 - For Go: use existing error and logging patterns, validate input at the boundary, and avoid raw SQL string building with user input

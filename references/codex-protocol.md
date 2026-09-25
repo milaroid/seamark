@@ -24,7 +24,7 @@ Codex participation is **configuration-driven and mandatory when selected**: whe
 
 All Codex behavior is controlled by the `second_engine:` section of the per-project `.m/pipeline.yml` (full schema, provider defaults, key-interpretation table, and the legacy `codex:` fallback in `pipeline-context.md`). Read it once at the start of any command that uses the second engine and hold the resolved values for the remainder of the run.
 
-**Codex-provider defaults when keys are absent** (from `pipeline-context.md`): `model: gpt-5.6-sol`, `reasoning_effort: high`, `fast_mode: false`, `token_budget: 200000`, `on_budget_exceeded: fallback`. Valid `model_reasoning_effort` values depend on the model family per the OpenAI config reference (gpt-5.6 family snapshot, checked 2026-07-25: `low|medium|high|xhigh|max|ultra`; `ultra` is slow and unsuitable for metered `/m` passes). A legacy `codex:` section with `enabled: true` resolves to `provider: codex` per the fallback rules in `pipeline-context.md`; when that mapping is used, note the deprecation once in the run metadata.
+**Codex-provider defaults when keys are absent** (from `pipeline-context.md`): `model: gpt-6-astra`, `reasoning_effort: high`, `fast_mode: false`, `token_budget: 200000`, `on_budget_exceeded: fallback`. Valid `model_reasoning_effort` values depend on the model family per the OpenAI model reference (`gpt-6-astra` model page, checked 2026-09-12: `low|medium|high|xhigh|max`; gpt-5.6 family snapshot, checked 2026-07-25: `low|medium|high|xhigh|max|ultra`, where `ultra` is slow and unsuitable for metered `/m` passes). A legacy `codex:` section with `enabled: true` resolves to `provider: codex` per the fallback rules in `pipeline-context.md`; when that mapping is used, note the deprecation once in the run metadata.
 
 Bind the resolved values to named shell variables used by the rest of this protocol:
 
@@ -32,7 +32,7 @@ Bind the resolved values to named shell variables used by the rest of this proto
 # Resolve config (parse .m/pipeline.yml second_engine: section, applying the legacy
 # codex: fallback and the pipeline-context.md codex defaults when keys are absent).
 CODEX_FAST=false              # from second_engine.fast_mode, default false
-CODEX_MODEL=gpt-5.6-sol       # from second_engine.model, default gpt-5.6-sol
+CODEX_MODEL=gpt-6-astra       # from second_engine.model, default gpt-6-astra
 CODEX_EFFORT=high             # from second_engine.reasoning_effort, default high
 CODEX_BUDGET=200000           # from second_engine.token_budget, default 200000
 CODEX_ON_EXCEED=fallback      # from second_engine.on_budget_exceeded, default fallback
@@ -44,7 +44,7 @@ Run this once before the first Codex pass of a command.
 
 1. If the resolved provider is not `codex`: set `CODEX_DISABLED=true`, skip every Codex pass for the rest of the run, do not prompt, do not warn. The command proceeds Claude-only (or under the Kimi protocol when the provider is `kimi`). Stop here.
 2. Otherwise, verify the CLI: run `codex --version` via Bash.
-   - If the command fails, is not on PATH, or reports a version older than `0.123.0`: print verbatim `[WARN] codex enabled but unavailable — proceeding Claude-only. Upgrade: npm install -g @openai/codex@latest`, set `CODEX_DISABLED=true`, and proceed Claude-only.
+   - If the command fails, is not on PATH, or reports a version older than `0.154.0` (the first release that lists `gpt-6-astra` in its model catalog): print verbatim `[WARN] codex enabled but unavailable — proceeding Claude-only. Upgrade: npm install -g @openai/codex@latest`, set `CODEX_DISABLED=true`, and proceed Claude-only.
    - Otherwise: set `CODEX_DISABLED=false`. Initialize the token meter: `mkdir -p .m/handoff && echo 0 > .m/handoff/codex-meter.txt`.
 
 Because Codex is mandatory when enabled, a genuine CLI failure is surfaced loudly (it is not silent), but it never hard-blocks the run — the command degrades to Claude-only. This is the same terminal behavior as the `on_budget_exceeded: fallback` path in Section 7. If a project requires Codex to be present (hard-fail), that is a project policy decision and is not the default.

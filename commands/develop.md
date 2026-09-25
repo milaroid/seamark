@@ -19,8 +19,9 @@ prior Skill call for that phase, stop immediately, delete the draft, and
 invoke the skill.
 
 The harness enforces this via a marker-file protocol that a PreToolUse hook
-validates on every Edit, Write, and MultiEdit. Skipping a skill now causes
-file mutations to be blocked until the skill is invoked.
+validates on every Edit, Write, and MultiEdit, and on every Bash command
+that writes outside `.m/`. Skipping a skill now causes file mutations to be
+blocked until the skill is invoked.
 
 ### Marker files
 
@@ -46,7 +47,7 @@ Immediately after the user invokes `/m:develop`, before anything else:
 Before moving from phase A to phase B:
 
 1. Verify `.m/phase-<A>-done` exists. If missing, re-enter phase A via its
-   skill — do NOT proceed. Every re-entry appends one JSON line to
+   skill only when missing execution or bookkeeping can be repaired — do NOT proceed. If phase A returned a provisional draft or a blocking user-intent question, surface that question and end this run through pipeline cleanup; do not re-enter it repeatedly without new input. Every repair re-entry appends one JSON line to
    `~/.claude/m-learning/signals/pipeline-events.jsonl` with the file tools,
    never a Bash `echo`:
    ```json
@@ -60,6 +61,10 @@ Before moving from phase A to phase B:
    one complete line in a single append and never rewrite existing lines.
 2. Overwrite `.m/DEVELOP_ACTIVE` with `current_phase: <B>`.
 3. Invoke `Skill(skill="m:<B>")` as the first action of phase B.
+
+At each handoff, pass the original requested outcome and constraints, the previous phase's output or artifact path, its readiness status, and the decision sources (explicit requirements, delegations, and unresolved questions) in the Skill arguments. A generated spec is not automatically user-approved. A completion marker cannot override a provisional or BLOCKED handoff.
+
+The request to deliver authorizes continuing through settled phases. Do not add confirmation stops between them unless the user requested an approval checkpoint or a new decision falls outside the existing authorization.
 
 ### Pipeline exit
 

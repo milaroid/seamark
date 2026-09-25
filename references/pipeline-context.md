@@ -22,7 +22,7 @@ high_stakes_paths:                       # repo-root-relative globs; a changed f
 second_engine:                           # second review/plan/research engine
   provider: none                         # codex | kimi | none (default). none = every
                                          # second-engine pass is skipped (Claude-only)
-  model: gpt-5.6-sol                     # model passed to the provider CLI (see defaults below)
+  model: gpt-6-astra                     # model passed to the provider CLI (see defaults below)
   reasoning_effort: high                 # effort passed to the provider (see interpretation table)
   fast_mode: false                       # codex only; ignored for kimi with a run-metadata note
   token_budget: 200000                   # cumulative second-engine tokens allowed per /m run
@@ -35,7 +35,7 @@ second_engine:                           # second review/plan/research engine
 
 | Provider | Protocol file | CLI floor |
 |---|---|---|
-| `codex` | `codex-protocol.md` | codex-cli `0.123.0` |
+| `codex` | `codex-protocol.md` | codex-cli `0.154.0` (first release with `gpt-6-astra` in the model catalog) |
 | `kimi` | `kimi-protocol.md` | kimi-code `0.29.0`, plus user-level deny rules — see below |
 | `none` | — (every second-engine pass skipped silently) | — |
 
@@ -43,7 +43,7 @@ Defaults when `provider` is set but other keys are absent:
 
 | Key | codex | kimi |
 |---|---|---|
-| `model` | `gpt-5.6-sol` | `kimi-code/k3` |
+| `model` | `gpt-6-astra` | `kimi-code/k3` |
 | `reasoning_effort` | `high` | `high` |
 | `fast_mode` | `false` | — (not supported) |
 | `token_budget` | `200000` | `200000` |
@@ -63,7 +63,8 @@ is ignored, and the run metadata notes the ignored key — it is never an error:
   defined in `~/.kimi-code/config.toml` (`kimi -m <alias>`), e.g. `kimi-code/k3`,
   `kimi-code/k3-256k`, `kimi-code/kimi-for-coding`.
 - `reasoning_effort` — codex: passed as `model_reasoning_effort`; valid values depend on
-  the model family (per the OpenAI config reference; for the gpt-5.6 family the snapshot
+  the model family (per the OpenAI model reference; for `gpt-6-astra` the model page
+  checked 2026-09-12 lists `low|medium|high|xhigh|max`; the gpt-5.6 family snapshot
   checked 2026-07-25 is `low|medium|high|xhigh|max|ultra`, with `ultra` unsuitable for
   metered `/m` passes). kimi: valid values are `low|high|max`, but kimi-code v0.29.x has no
   per-invocation effort flag — effort follows the model's `default_effort` in
@@ -95,8 +96,9 @@ Resolution rules:
    `second_engine.provider: codex` and the remaining `codex.*` keys map by name;
    `codex.enabled: false` maps to `provider: none`.
 3. Keys the legacy section omits take the codex-provider defaults in the table above
-   (`model: gpt-5.6-sol`, `reasoning_effort: high`, `fast_mode: false`). These differ from
-   the values documented before 2026-07-25 (`gpt-5.5` / `xhigh` / `fast_mode: true`), so a
+   (`model: gpt-6-astra`, `reasoning_effort: high`, `fast_mode: false`). These differ from
+   the values documented before 2026-09-12 (`gpt-5.6-sol`) and before 2026-07-25
+   (`gpt-5.5` / `xhigh` / `fast_mode: true`), so a
    partial legacy block such as `codex: {enabled: true}` alone now resolves to a different
    model and effort than it once did. Pin the values explicitly if a repository depends on
    the older ones.

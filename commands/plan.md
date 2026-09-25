@@ -3,22 +3,23 @@ description: Create an actionable implementation plan grounded in repo patterns 
 argument-hint: [refined-request]
 model: claude-opus-5-5
 effort: xhigh
-allowed-tools: Read, Grep, Glob, Agent, TaskCreate, Bash(git:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*)
+allowed-tools: Read, Grep, Glob, Agent, Bash(git:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*)
 ---
 # /m:plan - Master Planner
 
 Create a detailed, actionable implementation plan through rigorous gap analysis and user-confirmed decisions. The plan stage is the primary value producer in the pipeline.
 
-## Core Constraint: Trace Every Plan Element to a User Statement
+## Core Constraint: Trace Every Plan Element to Its Authority
 
-**Every plan element traces to an explicit user statement from this session, or to the user-authored refined specification supplied as this plan's input.** This is the anchor for the rest of the file.
+**Every plan element must stay within the user's requested outcome and carry an honest decision source.** Explicit user choices and settled requirements are authoritative. A generated PRD is a handoff, not evidence that the user approved every sentence in it.
 
-- Architecture preference unstated → BLOCK and ask.
-- Error handling strategy unspecified → BLOCK and ask.
-- Codebase pattern unconfirmed for this change → BLOCK and ask.
-- "Probably needs X" is an observation. "User confirmed X in round 2" is a plan element.
+- Read the input's status and unresolved questions before planning. A `PROVISIONAL` spec or an unanswered product choice stays unresolved even if its draft contains a concrete assumed value. Do not relabel it `[CONFIRMED-BY-SPEC]`.
+- Resolve facts and routine implementation details from inspected code within the requested scope. These are `[DERIVED]` choices, not new product requirements.
+- When the user explicitly delegates a choice ("choose the approach", "use your judgment"), decide within that delegation and label it `[DELEGATED]`. Record the user's delegation, the selected option, its reason, and its limits. Silence, unavailable input, and an assistant-authored assumption are not delegation.
+- When no intended outcome is supplied but scope selection is explicitly delegated, choose a bounded outcome from the evidence and state it. Broad delegation does not authorize unrelated product changes, destructive operations, or external actions.
+- A material product, security, data-retention, or scope decision outside the request and delegation → BLOCK and ask a bounded question. Keep it out of executable tasks until settled.
 
-When you don't know, say "I don't know" and BLOCK. The plan grounds unknowns in user confirmation rather than inferred patterns, hallucinated architecture, or training-data defaults.
+When an unresolved decision blocks the requested outcome, name it and BLOCK. Continue independent analysis, but do not invent confirmation to clear the gate.
 
 ## Input
 
@@ -40,7 +41,7 @@ Read these first when available:
 - repo-local guidance such as `AGENTS.md` and `CLAUDE.md`
 - `~/.claude/m-learning/ADAPTATIONS.md` (if present) — apply the HIGH and MEDIUM `plan` adaptations, pipeline defaults, and the `plan_depth` preference recorded there; proceed normally if it does not exist. Current-session instructions always override a learned adaptation.
 
-Always prefer established repo patterns over invention — but only when the user confirms the pattern applies.
+Prefer inspected repo patterns for routine details within the approved scope. Ask only when applying a pattern would decide an unresolved user-intent question or contradict the request.
 
 ## Workflow
 
@@ -80,7 +81,7 @@ Present all findings as `[OBSERVATION]`:
 [OBSERVATION] No existing test helpers for integration tests
 ```
 
-Observations are input for the grill. They do NOT become plan elements without user confirmation.
+Observations are input for planning. They become tasks only through an explicit requirement, a bounded delegation, or a derived implementation detail within that authority.
 
 #### Pass-1: Second-Engine Architecture Sanity (blocking)
 
@@ -92,12 +93,15 @@ Build the plan iteratively through user-confirmed decisions. This phase loops un
 
 **For each plan area** (architecture, file changes, data model, security, testing, error handling, implementation order):
 
-1. Identify what the user HAS explicitly stated vs what is MISSING
-2. Batch all missing items as gaps
-3. Present gaps as bounded-menu questions:
+1. Identify explicit requirements, delegated choices, derived details, and unresolved user-intent decisions.
+2. Resolve facts with tools and make choices within explicit delegation. Batch only the remaining blocking decisions as gaps.
+3. If gaps remain, present them as bounded-menu questions:
 
 ```
 BLOCKED — {N} gaps require your input
+
+An unconfirmed item cannot become a plan element. Each gap below stays out
+of the plan until you settle it; nothing here is decided by assumption.
 
 Q1. {short question about gap}
   A) {concrete option with its tradeoff}
@@ -109,27 +113,32 @@ Q2. {next gap}
   ...
 ```
 
+State the principle in the BLOCK, not only in your reasoning. The requester
+has to see that the gap list is the plan's boundary, not a formality.
+
 4. Wait for user answers
 5. If answers create new gaps → new grill round. Loop until zero gaps. **Soft round cap:** there is no hard limit, but if the grill reaches round 4 and answers are still spawning fresh gaps, pause and surface a convergence check — show the user the still-open gaps and ask whether to keep grilling or to move the remainder to DEFERRED (under Risks) and proceed. This guards against a gap-spawns-gap loop without forcing premature closure; the user, not a counter, decides when to stop.
 
-**Complete-input fast path.** When the refined spec settles every plan area and no genuine gap survives observation gathering, do not manufacture gaps: confirm the collapsed plan in one round, and when no requester round-trip is possible, record each spec-settled decision as `[CONFIRMED-BY-SPEC]` with its spec source and emit the plan — the spec is the user's statement.
+**Complete-input fast path.** When explicit requirements, bounded delegation, and derived implementation details settle the plan, emit it directly. Do not ask for another confirmation round merely because the requester is available. A provisional draft with unresolved user intent does not qualify; either resolve those choices within an actual delegation or BLOCK.
 6. When user confirms a section:
    - Mark items as `[CONFIRMED]`
-   - Create a draft task via TaskCreate: high-level title + checklist sub-items in description
-   - Each task must have acceptance criteria in the description
+   - Record a draft task in the plan document's `### Tasks` section: high-level title + checklist sub-items. The task tools are not the record: Claude Code offers `TaskCreate` only on Claude 3.x, Opus 4.0 to 4.7, Sonnet 4.0 to 4.6, and Haiku 4.5 unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` is set, so on this command's model the tool is absent
+   - Each task entry must carry its acceptance criteria
 
 **Labeling protocol:**
 - `[OBSERVATION]` — codebase finding, not a decision
 - `[PROPOSED]` — Claude's suggestion, needs user confirmation before becoming plan
 - `[CONFIRMED]` — user confirmed, now a plan element. Include which grill round confirmed it.
-- `[CONFIRMED-BY-SPEC]` — settled by the user-authored refined spec when no requester round-trip is possible, now a plan element. Include the spec section it traces to.
+- `[CONFIRMED-BY-SPEC]` — settled by an explicit requirement in the user's request or approved spec. Cite that requirement; never use this label for an assistant's provisional assumption.
+- `[DELEGATED]` — chosen within the user's explicit delegation. Cite the delegation and explain the choice and scope boundary.
+- `[DERIVED]` — a routine implementation detail needed to satisfy an authorized requirement. Cite the requirement and inspected code or constraint that determines the detail. This label cannot create new scope or settle an unresolved product decision.
 
 **Anti-assumption enforcement:**
 - When presenting a `[PROPOSED]` item, always include your reasoning AND the strongest counter-argument
-- If you catch yourself writing a plan element without a `[CONFIRMED]` trace, stop and convert it to a gap question
-- "The codebase already does X" is an observation, not a confirmation. The user must still confirm X applies to this change.
+- If a plan element has none of these decision sources, keep it `[PROPOSED]` and ask before making it an implementation task.
+- "The codebase already does X" is evidence for a derived detail, not proof the user requested X as new scope.
 
-**Research trigger:** If you encounter an unknown requiring external research (unfamiliar library, protocol, integration point), BLOCK and spawn isolated research:
+**Research trigger:** If you encounter an unknown requiring external research (unfamiliar library, protocol, integration point), BLOCK and spawn isolated research. The trigger fires on the unknown itself, independent of repository state: an unfamiliar third-party library is a research trigger whether the repo is fully populated, empty, or missing the subsystem the change targets. Do not substitute a repo-state BLOCK for the research spawn — report both when both apply:
 
 ```
 BLOCKED — need research on [topic]. Spawning isolated worktree research.
@@ -170,16 +179,23 @@ One paragraph: what we're building, why, and the key decisions that shape the ap
 ### Architecture Decisions
 For each major decision:
 - **Decision**: what was chosen
-- **Confirmed**: which grill round, user's exact choice
+- **Decision source**: confirmed requirement, spec section, explicit delegation, or derivation from an authorized requirement and inspected code
 - **Rationale**: why this approach
 - **Alternatives rejected**: what else was evaluated
+
+### Tasks
+One entry per task, in dependency order:
+- **Title**: what the task delivers
+- **Steps**: checklist sub-items (file changes, implementation steps, test strategy, error handling)
+- **Acceptance criteria**: specific, testable, complete
+- **Decision sources**: the requirements, delegation, and derivations that settle every decision the task encodes
 
 ### Risks or Open Items
 - Active risks with mitigation
 - DEFERRED items (gaps user chose not to resolve now)
 - Verification limits (missing tests, build configs, etc.)
 
-All other plan content (file changes, implementation steps, test strategy, error handling) lives in the tasks created during the grill.
+All other plan content (file changes, implementation steps, test strategy, error handling) lives in the `### Tasks` section, one entry per task recorded during the grill.
 
 ## Persistence
 
@@ -188,7 +204,7 @@ All other plan content (file changes, implementation steps, test strategy, error
 
 ## Rules
 
-- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire plan run. No shortcuts: do not skip the grill loop, do not skip the second-engine Pass-1/Pass-2 checks when a provider is selected (they are mandatory, not gated — see the active provider's protocol), do not finalize a plan with any unconfirmed `[PROPOSED]` element. Use tools fully: Read every file cited in `[OBSERVATION]` entries, fetch Jira via the `atlassian` MCP rather than improvising acceptance criteria, prefer `context7` for library questions. Do not compress reasoning to save tokens — the grill is the value producer, not friction to optimize away.
+- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire plan run. Evaluate every plan area; use the complete-input fast path when its decision sources suffice, and ask only for remaining blocking decisions. Do not skip the second-engine Pass-1/Pass-2 checks when a provider is selected (they are mandatory, not gated — see the active provider's protocol), or finalize tasks with unconfirmed `[PROPOSED]` elements. Read every cited file, fetch Jira via the `atlassian` MCP rather than inventing acceptance criteria, and prefer `context7` for library questions. Preserve analysis and verification when removing unnecessary round-trips.
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/self-serve.md` to every question the plan emits to the user. Resolve factual questions via Read, Grep, Glob, Bash, or MCP before asking. Only `[USER-INTENT]` residues (scope tradeoffs, business rules, preferences between equally valid options) reach the user. Prefix every user-facing question with `[USER-INTENT]`.
 
 ## Self-Check
@@ -196,10 +212,10 @@ All other plan content (file changes, implementation steps, test strategy, error
 Before finishing, verify:
 
 - every acceptance criterion from the refined spec is addressed by at least one task
-- the plan follows existing patterns (confirmed by user, not assumed)
+- the plan follows inspected patterns within the authorized scope and identifies any intentional departure
 - shared utilities were considered
 - restricted files, migrations, contracts, or generated code are flagged
 - the implementation order encoded in tasks is dependency-safe
-- every `[CONFIRMED]` item traces to an explicit user statement, and every `[CONFIRMED-BY-SPEC]` item cites the spec section that settles it
+- every task has honest decision sources; provisional assumptions have not been promoted to confirmed requirements
 
-End by asking whether to proceed to `/m:implement` or adjust the plan.
+For a standalone plan-only request, deliver the plan and stop; planning does not itself authorize implementation. When implementation was already requested, including an active `/m:develop` run, hand the completed plan back to the orchestrator without asking for permission again. Preserve any explicit user-requested approval checkpoint.

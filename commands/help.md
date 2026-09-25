@@ -85,6 +85,12 @@ Four security surfaces exist; pick by scope:
 - Repos that already maintain `PROJECT_INDEX.*`, `.planning/`, `AGENTS.md`, or `CLAUDE.md`: treat those as authoritative inputs when bootstrapping `.m/`
 - Repos that already have `.m/` state: prefer it and use `PROJECT_INDEX.*` only as supplementary context
 
+### Pipeline discipline
+
+`/m:develop` runs all five phases in order: **refine → plan → implement → review → iterate**. Every size runs the full pipeline. No stage is optional. No skips. No "trivial enough" bypass. The order is not ceremony: refine and plan front-load the assumptions that implement and review would otherwise guess at, which is what keeps the downstream stages cheap. Skipping them does not save work, it moves the work to where it costs more. Each phase is a discrete Skill invocation, and a `PreToolUse` hook (`enforce-develop-phase.py`) blocks file mutations outside `.m/` until the current phase has been entered via its skill. The hook validates `Edit`, `Write`, `MultiEdit`, and any Bash command that writes outside `.m/`. Marker files `.m/phase-<name>-started` and `-done` gate each transition, and `.m/DEVELOP_ACTIVE` records the current phase. The iterate exit predicate (tests green + zero critical findings + progress recorded + PRD criteria met) is the completion gate, not the loop count. `PASSED` requires the predicate; a loop-count exit is `BLOCKED`.
+
+The review variant is selected by change shape, not by preference: 1 to 3 files goes to `/m:review`, 4 or more files or a change crossing layers goes to `/m:review-fanout`. The second engine (Codex or Kimi) is config-driven, not prompted: it runs automatically on plan, research, and review whenever `.m/pipeline.yml` sets `second_engine.provider` to `codex` or `kimi`. The default is `none`, which runs Claude-only. It is not gated on how high-stakes the change looks.
+
 ### Defaults
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` to every `/m:*` invocation. No shortcuts (skipped phases, paraphrased requirements, `--no-verify` gates), full tool use (Read every cited file, run tests instead of predicting them, prefer `context7` and `atlassian` MCPs over recall, parallel independent calls), no compression of reasoning or verification work to save tokens. Simplified Technical English is an output filter only.
 - Do not auto-create worktrees

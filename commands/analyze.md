@@ -1,7 +1,7 @@
 ---
 description: Deep analysis of code, docs, systems, or flows with cached results and optional D2/Typst rendering. Use for architecture deep-dives, maintainability grading, or when "analyze X" is asked.
 argument-hint: [prompt|setup|list|open <slug>]
-model: claude-fable-5
+model: claude-fable-5-1
 effort: xhigh
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(d2:*), Bash(typst:*), Agent, Workflow
 ---
