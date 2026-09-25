@@ -1,7 +1,7 @@
 ---
 description: Parallel-lens code review — blind specialist subagents (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) reconciled by a judge pass. Use for medium-to-large diffs (4+ files) or cross-stack changes.
 argument-hint: [target]
-model: claude-opus-4-8
+model: claude-opus-5-5
 effort: xhigh
 allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*), Agent, Workflow
 ---

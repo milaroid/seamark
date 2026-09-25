@@ -1,8 +1,8 @@
 ---
 description: Implement an approved plan or a direct request using repo patterns. Use after /m:plan completes or for clear direct asks. Writes code.
 argument-hint: [plan-or-request]
-model: claude-opus-4-8
-effort: xhigh
+model: claude-opus-5-5
+effort: high
 disable-model-invocation: false
 ---
 # /m:implement - Implementation Workflow

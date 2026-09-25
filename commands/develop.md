@@ -1,7 +1,7 @@
 ---
 description: Run the full /m delivery pipeline end-to-end (refine → plan → implement → review → iterate). Use when user wants a complete request delivered with quality gates, dual-engine review, and phase enforcement.
 argument-hint: [request]
-model: claude-opus-4-8
+model: claude-opus-5-5
 effort: xhigh
 disable-model-invocation: true
 ---

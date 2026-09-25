@@ -1,7 +1,7 @@
 ---
 description: Multi-pass sequential code review with unified, evidence-backed findings, a mandatory second engine (Codex or Kimi, config-driven via .m/pipeline.yml second_engine:), and per-project compliance pass. Use for small-to-medium diffs (1-3 files) or when a single deep sweep is preferable to parallel fan-out.
 argument-hint: [target]
-model: claude-opus-4-8
+model: claude-opus-5-5
 effort: xhigh
 allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*), Agent
 ---

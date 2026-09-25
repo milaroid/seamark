@@ -1,8 +1,8 @@
 ---
 description: Focused, isolated research using internet sources, official docs, and local code. Spawns in a worktree to prevent context pollution. Use when planning encounters unknowns or user asks "research", "investigate", "compare options".
 argument-hint: [topic-or-question]
-model: claude-opus-4-8
-effort: xhigh
+model: claude-opus-5-5
+effort: high
 allowed-tools: Read, Grep, Glob, WebSearch, WebFetch, Agent, Workflow, Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(git:*), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*)
 ---
 # /m:research - Focused Research Workflow
