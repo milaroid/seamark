@@ -1,7 +1,7 @@
 ---
 description: Turn a raw request into an execution-ready PRD via active grilling. Use when user says "ask questions", "examine", "challenge this", "what am I missing", "stress test", "let's align", or wants a refined spec before planning or implementation.
 argument-hint: [request]
-model: claude-opus-4-8
+model: claude-opus-5-5
 effort: xhigh
 ---
 # /m:refine - Request Refinement (Grill Stage)

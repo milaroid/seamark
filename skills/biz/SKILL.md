@@ -1,8 +1,8 @@
 ---
 name: biz
 description: Analyze business logic to align code structure with business intent. Use when features involve business rules, pricing, workflows, compliance, authorization policies, domain modeling, or stakeholder-driven requirements; or when a `.business/` directory exists.
-model: claude-opus-4-8
-effort: max
+model: claude-opus-5-5
+effort: xhigh
 user-invocable: false
 paths:
   - ".business/**"
