@@ -1,13 +1,12 @@
 ---
 name: cr
 description: Security review of changed code — evidence-only, read-only. Use for manual security verification of PRs, commits, or local changes.
+argument-hint: [PR URL | commit | range | path]
 allowed-tools: Read, Grep, Glob, Bash(git:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh api:*)
-model: opus
-effort: max
+model: claude-opus-5-5
+effort: xhigh
 disable-model-invocation: true
 ---
-
-ultrathink
 
 Perform a security and integrity review for: $ARGUMENTS
 
@@ -34,14 +33,7 @@ Collect:
 
 ### Jira Context (best-effort)
 
-Resolve a Jira issue to enrich **Intent**. Follow the shared rules in `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md`. Resolution order:
-
-1. Explicit Jira URL in `$ARGUMENTS`.
-2. If `$ARGUMENTS` is a PR URL, derive from `gh pr view "$PR_URL" --json headRefName -q .headRefName` and apply `.m/jira.yml` `branchPattern` (default `([A-Z][A-Z0-9]+-\d+)`). Fall back to scanning the PR body for a Jira URL.
-3. Local review: current branch name → same regex.
-4. Bare `KEY` in `$ARGUMENTS` — only when `.m/jira.yml.projectKey` matches the prefix.
-
-If a key resolves, fetch it with `mcp__atlassian__*` tools (summary, description, acceptance criteria) and add a brief **Jira Context** block to the output under **Intent**. If no key or the MCP is not authenticated, proceed without Jira context — **do not fail the review**.
+Resolve a Jira issue to enrich **Intent**, per `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md` (URL, PR-branch derivation, local branch name, bare-key validation, fetch, unauthenticated behavior — never fail the review over Jira). If a key resolves, add a brief **Jira Context** block to the output under **Intent**.
 
 ## Step 2: Review Changed Code
 

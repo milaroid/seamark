@@ -1,0 +1,1634 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "model": "claude-opus-4-8",
+    "judge_model": "claude-sonnet-5"
+  },
+  "cases": {
+    "develop--edge": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/develop.md"
+      ],
+      "initial_diff": []
+    },
+    "develop--execute": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "function-changed",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "new-tests-exist",
+          "kind": "exists",
+          "paths": [
+            "normalize_test.go"
+          ]
+        },
+        {
+          "id": "existing-tests-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "email_test.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "scope",
+          "kind": "changes",
+          "paths": [
+            "email.go",
+            "normalize_test.go",
+            ".m/*"
+          ]
+        },
+        {
+          "id": "tests-executed",
+          "kind": "command",
+          "argv": [
+            "go",
+            "test"
+          ],
+          "success": true
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_test.go"
+        },
+        {
+          "id": "ordered-phases",
+          "kind": "phases",
+          "names": [
+            "refine",
+            "plan",
+            "implement",
+            "review",
+            "iterate"
+          ]
+        },
+        {
+          "id": "phase-markers",
+          "kind": "exists",
+          "paths": [
+            ".m/phase-refine-done",
+            ".m/phase-plan-done",
+            ".m/phase-implement-done",
+            ".m/phase-review-done",
+            ".m/phase-iterate-done"
+          ]
+        },
+        {
+          "id": "pipeline-cleanup",
+          "kind": "absent",
+          "paths": [
+            ".m/DEVELOP_ACTIVE"
+          ]
+        },
+        {
+          "id": "progress-updated",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "PASSED"
+          ]
+        },
+        {
+          "id": "persisted-prd",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "## 8. Success Criteria"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "email.go",
+        "email_test.go",
+        ".m/PLAN.md"
+      ],
+      "initial_diff": []
+    },
+    "develop--execute-missing": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "function-changed",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "new-tests-exist",
+          "kind": "exists",
+          "paths": [
+            "normalize_test.go"
+          ]
+        },
+        {
+          "id": "existing-tests-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "email_test.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "scope",
+          "kind": "changes",
+          "paths": [
+            "email.go",
+            "normalize_test.go",
+            ".m/*"
+          ]
+        },
+        {
+          "id": "tests-executed",
+          "kind": "command",
+          "argv": [
+            "go",
+            "test"
+          ],
+          "success": true
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_test.go"
+        },
+        {
+          "id": "ordered-phases",
+          "kind": "phases",
+          "names": [
+            "refine",
+            "plan",
+            "implement",
+            "review",
+            "iterate"
+          ]
+        },
+        {
+          "id": "phase-markers",
+          "kind": "exists",
+          "paths": [
+            ".m/phase-refine-done",
+            ".m/phase-plan-done",
+            ".m/phase-implement-done",
+            ".m/phase-review-done",
+            ".m/phase-iterate-done"
+          ]
+        },
+        {
+          "id": "pipeline-cleanup",
+          "kind": "absent",
+          "paths": [
+            ".m/DEVELOP_ACTIVE"
+          ]
+        },
+        {
+          "id": "progress-updated",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "PASSED"
+          ]
+        },
+        {
+          "id": "persisted-prd",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "## 8. Success Criteria"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "email.go",
+        "email_test.go",
+        ".m/PLAN.md"
+      ],
+      "initial_diff": []
+    },
+    "develop--execute-stale": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "function-changed",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "new-tests-exist",
+          "kind": "exists",
+          "paths": [
+            "normalize_test.go"
+          ]
+        },
+        {
+          "id": "existing-tests-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "email_test.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "scope",
+          "kind": "changes",
+          "paths": [
+            "email.go",
+            "normalize_test.go",
+            ".m/*"
+          ]
+        },
+        {
+          "id": "tests-executed",
+          "kind": "command",
+          "argv": [
+            "go",
+            "test"
+          ],
+          "success": true
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_test.go"
+        },
+        {
+          "id": "ordered-phases",
+          "kind": "phases",
+          "names": [
+            "refine",
+            "plan",
+            "implement",
+            "review",
+            "iterate"
+          ]
+        },
+        {
+          "id": "phase-markers",
+          "kind": "exists",
+          "paths": [
+            ".m/phase-refine-done",
+            ".m/phase-plan-done",
+            ".m/phase-implement-done",
+            ".m/phase-review-done",
+            ".m/phase-iterate-done"
+          ]
+        },
+        {
+          "id": "pipeline-cleanup",
+          "kind": "absent",
+          "paths": [
+            ".m/DEVELOP_ACTIVE"
+          ]
+        },
+        {
+          "id": "progress-updated",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "PASSED"
+          ]
+        },
+        {
+          "id": "persisted-prd",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "## 8. Success Criteria"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "email.go",
+        "email_test.go",
+        ".m/PLAN.md"
+      ],
+      "initial_diff": []
+    },
+    "develop--failure": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/develop.md"
+      ],
+      "initial_diff": []
+    },
+    "develop--happy": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/develop.md"
+      ],
+      "initial_diff": []
+    },
+    "help-command-triggers": {
+      "category": "smoke",
+      "checks": [
+        {
+          "id": "help-invoked",
+          "kind": "skill",
+          "name": "m:help",
+          "arm": "with"
+        }
+      ],
+      "ablation": false
+    },
+    "implement--edge": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:implement",
+          "arm": "with"
+        },
+        {
+          "id": "source-unchanged",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "no-done",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-implement-done"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "implement--failure": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:implement",
+          "arm": "with"
+        },
+        {
+          "id": "migration-not-run",
+          "kind": "absent",
+          "paths": [
+            "migration-attempted"
+          ]
+        },
+        {
+          "id": "source-unchanged",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.py",
+            "go.mod"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "implement--happy": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:implement",
+          "arm": "with"
+        },
+        {
+          "id": "function-changed",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "new-tests-exist",
+          "kind": "exists",
+          "paths": [
+            "normalize_test.go"
+          ]
+        },
+        {
+          "id": "existing-tests-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "email_test.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "scope",
+          "kind": "changes",
+          "paths": [
+            "email.go",
+            "normalize_test.go",
+            ".m/*"
+          ]
+        },
+        {
+          "id": "tests-executed",
+          "kind": "command",
+          "argv": [
+            "go",
+            "test"
+          ],
+          "success": true
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_test.go"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "email.go",
+        "email_test.go",
+        ".m/PLAN.md"
+      ],
+      "initial_diff": []
+    },
+    "implement--neutral": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "function-changed",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "new-tests-exist",
+          "kind": "exists",
+          "paths": [
+            "normalize_test.go"
+          ]
+        },
+        {
+          "id": "existing-tests-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "email_test.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "scope",
+          "kind": "changes",
+          "paths": [
+            "email.go",
+            "normalize_test.go",
+            ".m/*"
+          ]
+        },
+        {
+          "id": "tests-executed",
+          "kind": "command",
+          "argv": [
+            "go",
+            "test"
+          ],
+          "success": true
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_test.go"
+        }
+      ],
+      "ablation": true,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "email.go",
+        "email_test.go",
+        ".m/PLAN.md"
+      ],
+      "initial_diff": []
+    },
+    "iterate--edge": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:iterate",
+          "arm": "with"
+        },
+        {
+          "id": "verification-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "check.py",
+            "verification.json",
+            "email_test.go",
+            ".m/PRD-verification.md"
+          ]
+        },
+        {
+          "id": "checks-executed",
+          "kind": "command",
+          "argv": [
+            "python3",
+            "check.py"
+          ],
+          "min": 2
+        },
+        {
+          "id": "observed-check-results",
+          "kind": "history",
+          "min": 2,
+          "exit_codes": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        },
+        {
+          "id": "progress-recorded",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "no-done",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-iterate-done"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "check.py",
+        "verification.json",
+        ".m/PRD-verification.md",
+        ".m/REVIEW.md"
+      ],
+      "initial_diff": [
+        "email.go"
+      ]
+    },
+    "iterate--failure": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:iterate",
+          "arm": "with"
+        },
+        {
+          "id": "verification-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "check.py",
+            "verification.json",
+            "email_test.go",
+            ".m/PRD-verification.md"
+          ]
+        },
+        {
+          "id": "checks-executed",
+          "kind": "command",
+          "argv": [
+            "python3",
+            "check.py"
+          ],
+          "min": 1
+        },
+        {
+          "id": "observed-check-results",
+          "kind": "history",
+          "min": 1,
+          "exit_codes": [
+            1
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        },
+        {
+          "id": "progress-recorded",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "no-done",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-iterate-done"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "check.py",
+        "verification.json",
+        ".m/PRD-verification.md",
+        ".m/REVIEW.md"
+      ],
+      "initial_diff": [
+        "email.go"
+      ]
+    },
+    "iterate--happy": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:iterate",
+          "arm": "with"
+        },
+        {
+          "id": "verification-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "check.py",
+            "verification.json",
+            "email_test.go",
+            ".m/PRD-verification.md"
+          ]
+        },
+        {
+          "id": "checks-executed",
+          "kind": "command",
+          "argv": [
+            "python3",
+            "check.py"
+          ],
+          "min": 1
+        },
+        {
+          "id": "observed-check-results",
+          "kind": "history",
+          "min": 1,
+          "exit_codes": [
+            0
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "PASSED"
+          ]
+        },
+        {
+          "id": "progress-recorded",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "check.py",
+        "verification.json",
+        ".m/PRD-verification.md",
+        ".m/REVIEW.md"
+      ],
+      "initial_diff": [
+        "email.go"
+      ]
+    },
+    "iterate--prd-blocked": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:iterate",
+          "arm": "with"
+        },
+        {
+          "id": "verification-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "check.py",
+            "verification.json",
+            "email_test.go",
+            ".m/PRD-verification.md"
+          ]
+        },
+        {
+          "id": "checks-executed",
+          "kind": "command",
+          "argv": [
+            "python3",
+            "check.py"
+          ],
+          "min": 1
+        },
+        {
+          "id": "observed-check-results",
+          "kind": "history",
+          "min": 1,
+          "exit_codes": [
+            0
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        },
+        {
+          "id": "progress-recorded",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        },
+        {
+          "id": "no-done",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-iterate-done"
+          ]
+        },
+        {
+          "id": "certificate-not-fabricated",
+          "kind": "absent",
+          "paths": [
+            "release-approved.json"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "check.py",
+        "verification.json",
+        ".m/PRD-verification.md",
+        ".m/REVIEW.md"
+      ],
+      "initial_diff": [
+        "email.go"
+      ]
+    },
+    "plan--edge": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:plan",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "plan--failure": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:plan",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "plan--happy": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:plan",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--chat-only": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "no-spec-file",
+          "kind": "absent",
+          "paths": [
+            ".m/PRD-*.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--edge": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "no-spec-file",
+          "kind": "absent",
+          "paths": [
+            ".m/PRD-*.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--failure": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "no-spec-file",
+          "kind": "absent",
+          "paths": [
+            ".m/PRD-*.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--happy": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "progress-or-spec-files-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "persisted-prd",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "## 8. Success Criteria"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "review--edge": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": [
+        "evals/fixture/review/search_handler.go"
+      ]
+    },
+    "review--failure": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "N/A"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "review--happy": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "APPROVED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": [
+        "total.go"
+      ]
+    },
+    "review--safe": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "APPROVED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": [
+        "evals/fixture/review/search_handler.go"
+      ]
+    },
+    "review-fanout--edge": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/review-fanout.md"
+      ],
+      "initial_diff": []
+    },
+    "review-fanout--failure": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/review-fanout.md"
+      ],
+      "initial_diff": []
+    },
+    "review-fanout--happy": {
+      "category": "documentation",
+      "checks": [
+        {
+          "id": "reference-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "reference/*"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "reference/review-fanout.md"
+      ],
+      "initial_diff": []
+    },
+    "unrelated-request-ignores-plugin": {
+      "category": "smoke",
+      "checks": [
+        {
+          "id": "no-plugin-skill",
+          "kind": "no_skill",
+          "prefix": "m:"
+        }
+      ],
+      "ablation": true
+    },
+    "plan--delegated": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:plan",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod",
+            "evals/fixture/plan/*"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "plan-written",
+          "kind": "exists",
+          "paths": [
+            ".m/PLAN.md",
+            ".m/phase-plan-done"
+          ]
+        },
+        {
+          "id": "delegation-recorded",
+          "kind": "contains",
+          "path": ".m/PLAN.md",
+          "text": "[DELEGATED]"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "plan--provisional": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:plan",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod",
+            "evals/fixture/plan/*"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "no-completion",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-plan-done"
+          ]
+        },
+        {
+          "id": "draft-preserved",
+          "kind": "unchanged",
+          "paths": [
+            ".m/PRD-limiter.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--settled": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod",
+            "evals/fixture/plan/*"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "ready",
+          "kind": "exists",
+          "paths": [
+            ".m/phase-refine-done"
+          ]
+        },
+        {
+          "id": "spec-written",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "## 8. Success Criteria"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "refine--provisional": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod",
+            "evals/fixture/plan/*"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "not-ready",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-refine-done"
+          ]
+        },
+        {
+          "id": "provisional-draft",
+          "kind": "glob_contains",
+          "glob": ".m/PRD-*.md",
+          "text": "PROVISIONAL"
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "implement--provisional": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:implement",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "*.html",
+            "go.mod",
+            "evals/fixture/plan/*"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "not-implemented",
+          "kind": "absent",
+          "paths": [
+            "normalize_test.go",
+            ".m/phase-implement-done"
+          ]
+        },
+        {
+          "id": "plan-preserved",
+          "kind": "unchanged",
+          "paths": [
+            ".m/PLAN.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml"
+      ],
+      "initial_diff": []
+    },
+    "review-fanout--judge-unresolved": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review-fanout",
+          "arm": "with"
+        },
+        {
+          "id": "source-and-reports-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.py",
+            ".m/lens-reports.md"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "routes.py",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        ".m/lens-reports.md"
+      ],
+      "initial_diff": []
+    },
+    "review-fanout--judge-resolved": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review-fanout",
+          "arm": "with"
+        },
+        {
+          "id": "source-and-reports-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.py",
+            ".m/lens-reports.md"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "verdict",
+          "kind": "verdict",
+          "values": [
+            "APPROVED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "routes.py",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        ".m/lens-reports.md"
+      ],
+      "initial_diff": []
+    }
+  }
+}

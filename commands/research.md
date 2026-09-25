@@ -1,9 +1,9 @@
 ---
 description: Focused, isolated research using internet sources, official docs, and local code. Spawns in a worktree to prevent context pollution. Use when planning encounters unknowns or user asks "research", "investigate", "compare options".
 argument-hint: [topic-or-question]
-model: opus
-effort: xhigh
-allowed-tools: Read, Grep, Glob, WebSearch, WebFetch, Agent, Bash
+model: claude-opus-5-5
+effort: high
+allowed-tools: Read, Grep, Glob, WebSearch, WebFetch, Agent, Workflow, Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(git:*), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*)
 ---
 # /m:research - Focused Research Workflow
 
@@ -52,14 +52,14 @@ The research agent reads these when relevant (within its isolated context):
 
 Use web research when the answer depends on external systems, changing facts, or official documentation.
 
-## Dual-Engine Research (Codex)
+## Dual-Engine Research (second engine)
 
-When `codex.enabled` is true (opt-in — see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-context.md`), research runs as a **parallel dual-engine** pass: Codex researches the same questions independently while Claude's research agent runs, then Claude reconciles both into one finding set. Follow `${CLAUDE_PLUGIN_ROOT}/references/codex-protocol.md` Section 11 for the full protocol — config resolution (Section 1), the Operating-Rules Preamble (Section 4), Secret Redaction (Section 5), the Metered Codex Invocation (Section 6), Token Metering (Section 7), and the reconciliation rules (`[CORROBORATED]` where both agree; side-by-side `[claude]` vs `[codex]` where they disagree; merge unique findings preserving citations). When Codex is disabled, unavailable, or the token budget is reached, run Claude-only research exactly as before.
+When `second_engine.provider` is `codex` or `kimi` (see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-context.md`), research runs as a **parallel dual-engine** pass: the second engine researches the same questions independently while Claude's research agent runs, then Claude reconciles both into one finding set. Follow the active provider's protocol Section 11 (`${CLAUDE_PLUGIN_ROOT}/references/codex-protocol.md` or `${CLAUDE_PLUGIN_ROOT}/references/kimi-protocol.md`) — config resolution (Section 1), the Operating-Rules Preamble (Section 4), Secret Redaction (Section 5), the Metered Invocation (Section 6), Token Metering (Section 7), and the reconciliation rules (`[CORROBORATED]` where both agree; side-by-side `[claude]` vs `[codex]`/`[kimi]` where they disagree; merge unique findings preserving citations). When the provider is `none`, the CLI is unavailable, or the token budget is reached, run Claude-only research exactly as before.
 
 ## Workflow
 
 1. Convert the request into 2-5 focused research questions
-2. Resolve the `codex:` config and, when enabled, kick off the Codex research pass (protocol Section 11) in parallel with the steps below
+2. Resolve `second_engine` and, when a provider is selected, kick off its research pass (protocol Section 11) in parallel with the steps below
 3. Inspect local code and repo patterns first
 4. Use official docs and primary sources for external facts
 5. Separate:
@@ -67,10 +67,14 @@ When `codex.enabled` is true (opt-in — see `${CLAUDE_PLUGIN_ROOT}/references/p
    - external facts
    - recommendations or opinions
 6. Compare options, tradeoffs, risks, and unknowns
-7. Reconcile Claude and Codex findings per protocol Section 11 (when dual-engine ran)
+7. Reconcile Claude and second-engine findings per protocol Section 11 (when dual-engine ran)
 8. Return findings as text to the parent session, then run Handoff Cleanup (protocol Section 13)
 
 The research agent does NOT write to `.m/RESEARCH.md`. The parent session writes findings to `.m/RESEARCH.md` if and when the user confirms they should be persisted.
+
+## Ultracode
+
+When the Workflow tool is available in the session, run the 2-5 research questions as parallel agents in one Workflow script. This instruction is the orchestration opt-in; do not wait for an ultracode keyword from the user. Keep the question set, the source rules, and the reconciliation step unchanged. When the Workflow tool is absent, run the questions with the existing agent pattern.
 
 ## Rules
 

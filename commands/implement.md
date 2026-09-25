@@ -1,8 +1,8 @@
 ---
-description: Implement an approved plan or a direct request using repo patterns. Use after /m:plan completes or for clear direct asks. Writes code; explicit invocation only.
+description: Implement an approved plan or a direct request using repo patterns. Use after /m:plan completes or for clear direct asks. Writes code.
 argument-hint: [plan-or-request]
-model: opus
-effort: xhigh
+model: claude-opus-5-5
+effort: high
 disable-model-invocation: false
 ---
 # /m:implement - Implementation Workflow
@@ -13,15 +13,11 @@ Implement the approved plan or a clear direct request.
 
 Approved plan or implementation instructions: `$ARGUMENTS`
 
+Before source changes, check the plan's readiness and decision sources. A `PROVISIONAL` or `BLOCKED` plan, or an unresolved user-intent choice affecting the task, must return to planning without implementation. Do not treat an assistant-authored assumption as user approval. Confirmed requirements, choices within explicit delegation, and routine details derived within that scope may proceed when implementation itself was requested; do not ask for the same authorization again.
+
 ## Jira Context (run before implementation)
 
-If `$ARGUMENTS` contains a Jira reference (full `*.atlassian.net/browse/KEY` URL, or a bare `KEY` that matches `.m/jira.yml` `projectKey`), fetch the story via the `atlassian` MCP server **before** starting implementation. Follow the shared rules in `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md`.
-
-- Load `.m/jira.yml` if present for `site`, `projectKey`, `branchPattern`.
-- Use `mcp__atlassian__*` tools to fetch: summary, description, status, acceptance criteria, recent comments.
-- If the `atlassian` MCP is not installed or not authenticated, stop and instruct the user to run `/mcp` (or add it with `claude mcp add --transport http --scope user atlassian https://mcp.atlassian.com/v1/mcp`).
-- Prepend a **Jira Context** block (key, title, link, status, 2–4 line summary) to the Implementation Summary.
-- Treat Jira acceptance criteria as the verification target. If your implementation cannot satisfy all of them, list the gaps under **Deviations**.
+If `$ARGUMENTS` contains a Jira reference, resolve and fetch it per `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md` **before** starting implementation. Treat Jira acceptance criteria as the verification target; if the implementation cannot satisfy all of them, list the gaps under **Deviations**.
 
 ## Context Sources
 
@@ -34,6 +30,7 @@ Read these first when available:
 - `.m/GAPS.md`
 - `PROJECT_INDEX.md`
 - repo-local guidance such as `AGENTS.md` and `CLAUDE.md`
+- `~/.claude/m-learning/ADAPTATIONS.md` (if present) — apply the HIGH and MEDIUM `implement` adaptations and the `test_approach` preference recorded there; proceed normally if it does not exist. Current-session instructions always override a learned adaptation.
 
 ## Workflow
 
@@ -76,11 +73,12 @@ This classification drives how aggressively to proceed vs pause for confirmation
 
 ## Implementation Rules
 
-- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire implementation. No shortcuts: do not skip the test runs the plan calls for, do not silently drift from `[CONFIRMED]` plan elements, do not bypass `--no-verify`/`--force`-style escape hatches, and do not collapse multi-step tasks into one to "save time". Use tools fully: Read every file before editing, prefer `Edit`/`Write` over Bash for file mutation, run independent tool calls in parallel, and use the `atlassian` MCP for Jira context rather than improvising acceptance criteria. Do not compress reasoning or skip verification to save tokens — caveman applies only to chat output.
+- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire implementation. No shortcuts: do not skip the test runs the plan calls for, do not silently drift from `[CONFIRMED]` plan elements, do not bypass `--no-verify`/`--force`-style escape hatches, and do not collapse multi-step tasks into one to "save time". Use tools fully: Read every file before editing, prefer `Edit`/`Write` over Bash for file mutation, run independent tool calls in parallel, and use the `atlassian` MCP for Jira context rather than improvising acceptance criteria. Do not compress reasoning or skip verification to save tokens — Simplified Technical English applies only to chat output.
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/self-serve.md`. Before asking the user any question during implementation, run the self-serve pass: Read the file, Grep the symbol, run the test, call the MCP. Only escalate `[USER-INTENT]` residues (genuine plan defects, undecided design choices) back to the plan stage. Do not ask the user about facts the repository already records.
 - Match established project patterns exactly
 - Reuse shared types, components, utilities, and services before creating new ones
 - Keep the change to the minimum that satisfies the request. Do not add features, refactor adjacent code, or make "improvements" beyond what was asked — a bug fix does not need the surrounding code cleaned up. The right amount of complexity is the minimum needed for the current task; do not introduce abstractions, configuration knobs, or defensive layers the request did not call for. Validate input only at system boundaries such as user input and external API responses, not at every internal call site.
+- Do not add test cases, code paths, or functionality that the plan did not specify. "Proportionate extras", "bonus coverage", and "while we are here" additions are scope violations, not deviations. If additional test cases or features would improve the change, escalate back to the plan stage as a plan defect. Deviations are for recording how you implemented a plan element differently than the plan described, not for adding elements the plan never named.
 - Solve the problem, not the test. Implement a solution that works correctly for all valid inputs, not only the cases the tests cover, and never hard-code expected values to make a test pass. Tests verify correctness; they do not define the solution. If a test itself looks wrong, flag it instead of coding to satisfy it.
 - Prefer tests first when proportionate, especially for business logic, auth, money, parsing, or data integrity
 - For Go: use existing error and logging patterns, validate input at the boundary, and avoid raw SQL string building with user input

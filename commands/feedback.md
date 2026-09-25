@@ -1,7 +1,7 @@
 ---
 description: Store explicit /m:* workflow preferences (approve, reject, prefer, style). Use only when the user explicitly wants persistent learning for /m:* behavior.
 argument-hint: [approve|reject|prefer|style|show|stats|reset] ...
-model: haiku
+model: claude-haiku-4-5
 effort: low
 allowed-tools: Read, Edit, Write
 disable-model-invocation: true
@@ -55,7 +55,7 @@ Show signal counts by file and whether `ADAPTATIONS.md` exists.
 
 ### `reset`
 
-Ask for confirmation first. Only remove learning data if the user confirms.
+Ask for confirmation first. Only clear learning data if the user confirms. Clear by overwriting each signal file under `~/.claude/m-learning/signals/` to empty with the Write tool — do **not** delete the files (`Write` is the only mutation tool granted here, and an emptied file is an equivalent reset). Report which files were cleared.
 
 ### No arguments
 

@@ -21,7 +21,7 @@ Do not collapse work to a smaller form because the change "feels" sufficient, th
 - Never delete, rewrite, or "clean up" unfamiliar state (files, branches, configs, lock files, marker files, worktrees) to clear a path. Investigate first; the unfamiliar state may be the user's in-progress work.
 - Never decide "the user probably meant X" when X is more convenient than what the user actually wrote. Ask.
 - Never collapse two `/m:*` phases into one because the run "feels" small. The phase boundaries are part of the contract, not friction to optimize away.
-- Never accept the first plan from `/m:plan` without running the grill loop. The grill is the value producer; the lowest-common-denominator first plan is the failure mode.
+- Never finalize a plan without inspecting every plan area and resolving its blocking decisions. When explicit requirements, bounded delegation, and derived implementation details settle those areas, use `/m:plan`'s complete-input fast path; an extra confirmation round is not required.
 - Never skip the self-challenge step from `verification.md` because the finding "feels" obvious. Obvious findings are the ones most likely to evaporate under inspection.
 - Never declare a `/m:iterate` run `PASSED` on the loop-count cap. `PASSED` requires the three-clause exit predicate, not the safety cap.
 
@@ -54,7 +54,7 @@ Do not compress your *work* to save context, tokens, turns, or wall-clock time. 
 - Long chains of reasoning do not need to be hidden or summarised away — when a step matters for correctness, run it in full.
 - Do not collapse multi-pass reviews into a single pass to "save context." Each lens or pass produces independent signal that the merge step depends on; collapsing them silently degrades the verdict.
 - Do not skip the dual-engine (Codex) check on `/m:plan` because the run "should" be cheap. The check exists because cheap-feeling runs are exactly where assumption errors hide.
-- Do not skip the `/m:plan` BLOCK-and-grill loop because the user "probably" wants the obvious option. The grill is the value producer.
+- Do not invent user intent to avoid a `/m:plan` question. Ask for material choices outside the existing request and delegation; do not reopen decisions the user already made or delegated.
 - Do not skip the second-opinion gate on `/m:review` for high-stakes categories because the diff "feels small." High-stakes categories are defined by blast radius, not diff size.
 - Do not preemptively summarise before the work is done. Summaries belong at terminal points, not as a substitute for the work.
 - Do not stop reading a long file at an arbitrary line because "this is probably enough." Read what you need to read.
@@ -83,7 +83,7 @@ If any of those four answers is "yes" and you are about to proceed anyway, stop.
 
 ## Enforcement
 
-This file is loaded at every session start through `~/.claude/rules/`. It applies to:
+Every `/m:*` command loads this file from `${CLAUDE_PLUGIN_ROOT}/rules/` through its Rules section; read it in full before acting on any stage. It applies to:
 
 - every `/m:*` skill and command,
 - every spawned subagent,

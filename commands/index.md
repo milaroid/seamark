@@ -1,7 +1,7 @@
 ---
 description: Build or refresh persistent project memory under .m/ (INDEX, TASKS, PROGRESS, GAPS, RESEARCH). Use on first /m:* run in a repo or when index is stale. Foundation for downstream /m:* stages.
 argument-hint: [focus-area]
-model: opus
+model: claude-opus-5-5
 effort: high
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(git:*), Agent
 ---

@@ -7,9 +7,9 @@
 *Requests are grilled into specifications, plans are challenged until zero gaps remain, and code ships only after gated review and a verification loop.*
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)
-![Commands](https://img.shields.io/badge/commands-14-3b6ea5)
+![Commands](https://img.shields.io/badge/commands-15-3b6ea5)
 ![Skills](https://img.shields.io/badge/expert%20skills-5-3b6ea5)
-![Review](https://img.shields.io/badge/review-Claude%20%2B%20Codex-4c9a6b)
+![Review](https://img.shields.io/badge/second%20engine-Codex%20%7C%20Kimi-4c9a6b)
 ![Gates](https://img.shields.io/badge/phases-hook--enforced-c0563a)
 
 </div>
@@ -25,7 +25,7 @@
 The phases run in order, and each must prove it finished before the next can start:
 
 1. **refine** — grill the raw request into an execution-ready spec.
-2. **plan** — build the implementation plan, dual-engine sanity pass (Claude + Codex).
+2. **plan** — build the implementation plan, second-engine sanity pass (Codex or Kimi when configured).
 3. **implement** — write code to the approved plan only, following repo patterns.
 4. **review** — evidence-backed review, sequential or parallel blind-lens fan-out.
 5. **iterate** — test-and-fix loop until the exit predicate holds.
@@ -60,7 +60,7 @@ Commands, the five expert skills, and the phase-enforcement hook are available i
 /m:develop add per-IP rate limiting to the public API
 ```
 
-Claude refines the request into a spec, plans it (cross-checked by Codex if available), implements against the plan, reviews the diff, and runs a verify-fix loop — pausing for your input at each gate.
+Claude refines the request into a spec, plans it (cross-checked by the configured second engine), implements against the plan, reviews the diff, and runs a verify-fix loop — pausing for your input at each gate.
 
 **Or drive the phases yourself**, one command at a time:
 
@@ -91,11 +91,11 @@ Run together by `/m:develop`, or individually. Each is a real Skill with its own
 
 | # | Command | What it does | Model |
 |:-:|---------|--------------|:-----:|
-| ① | `/m:refine` | Grills a raw request into an execution-ready spec — optimal-version reframe, then bounded-menu questions until ambiguity is gone. | Opus |
-| ② | `/m:plan` | Builds the implementation plan and challenges it with a dual-engine (Claude + Codex) sanity pass — grilled until zero gaps remain. | Opus |
-| ③ | `/m:implement` | Writes code **to the approved plan only**, following repo patterns. Plan defects escalate back to plan rather than being improvised past. | Opus |
-| ④ | `/m:review` · `/m:review-fanout` | Evidence-backed review. Sequential for small diffs; parallel blind-lens fan-out (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) + judge for large ones. | Opus |
-| ⑤ | `/m:iterate` | Test-and-fix loop until the exit predicate holds (tests green · zero critical findings · progress logged). The 3-loop cap is `BLOCKED`, never `PASSED`. | Sonnet |
+| ① | `/m:refine` | Grills a raw request into an execution-ready spec — optimal-version reframe, then bounded-menu questions until ambiguity is gone. | Opus 5.5 |
+| ② | `/m:plan` | Builds the implementation plan and challenges it with a second-engine (Codex or Kimi) sanity pass — grilled until zero gaps remain. | Opus 5.5 |
+| ③ | `/m:implement` | Writes code **to the approved plan only**, following repo patterns. Plan defects escalate back to plan rather than being improvised past. | Opus 5.5 |
+| ④ | `/m:review` · `/m:review-fanout` | Evidence-backed review. Sequential for small diffs; parallel blind-lens fan-out (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) + judge for large ones. | Opus 5.5 |
+| ⑤ | `/m:iterate` | Test-and-fix loop until the exit predicate holds (tests green · zero critical findings · progress logged · PRD criteria met). The 3-loop cap is `BLOCKED`, never `PASSED`. | Sonnet 5 |
 
 ---
 
@@ -105,20 +105,21 @@ Run together by `/m:develop`, or individually. Each is a real Skill with its own
 
 | Command | Purpose | Model |
 |---------|---------|:-----:|
-| `/m:develop` | Run all five phases end-to-end with hard phase gates and dual-engine review. | Opus |
-| `/m:refine` · `/m:plan` · `/m:implement` · `/m:review` · `/m:review-fanout` · `/m:iterate` | The phases, standalone (see table above). | Opus / Sonnet |
+| `/m:develop` | Run all five phases end-to-end with hard phase gates and second-engine review. | Opus 5.5 |
+| `/m:refine` · `/m:plan` · `/m:implement` · `/m:review` · `/m:review-fanout` · `/m:iterate` | The phases, standalone (see table above). | Opus 5.5 / Sonnet 5 |
 
 **Support** — build, inspect, and learn from project memory:
 
 | Command | Purpose | Model |
 |---------|---------|:-----:|
-| `/m:index` | Build or refresh persistent `.m/` project memory (stack, patterns, hotspots). | Opus |
-| `/m:status` | "Where are we" dashboard — focus, gaps, tasks, worktrees. Logs bugs and progress. | Sonnet |
-| `/m:research` | Isolated worktree research for unknowns before planning — advisory only. | Opus |
-| `/m:analyze` | Deep analysis of code/docs/systems, with optional diagrams and grading. | Opus |
-| `/m:feedback` | Store explicit workflow preferences (filesystem only, no inference). | Haiku |
-| `/m:learn` | Turn stored feedback signals into per-skill behavioral adaptations. | Sonnet |
-| `/m:help` | Print the workflow reference — order, purposes, side-effect tiers. | Haiku |
+| `/m:index` | Build or refresh persistent `.m/` project memory (stack, patterns, hotspots). | Opus 5.5 |
+| `/m:status` | "Where are we" dashboard — focus, gaps, tasks, worktrees. Logs bugs and progress. | Sonnet 5 |
+| `/m:research` | Isolated worktree research for unknowns before planning — advisory only. | Opus 5.5 |
+| `/m:analyze` | Deep analysis of code/docs/systems, with optional diagrams and grading. | Fable 5.1 |
+| `/m:setup` | Diagnose and configure the second engine — provider, model, effort, per-repo block. | Sonnet 5 |
+| `/m:feedback` | Store explicit workflow preferences (filesystem only, no inference). | Haiku 4.5 |
+| `/m:learn` | Turn stored feedback signals into per-skill behavioral adaptations. | Sonnet 5 |
+| `/m:help` | Print the workflow reference — order, purposes, side-effect tiers. | Haiku 4.5 |
 
 ---
 
@@ -138,9 +139,9 @@ Five specialist skills. Three **auto-activate** when matching files are edited; 
 
 ## How it works
 
-**Phase enforcement.** `/m:develop` writes marker files (`.m/DEVELOP_ACTIVE`, `.m/phase-<name>-started`/`-done`). The `enforce-develop-phase.py` `PreToolUse` hook denies `Edit`/`Write`/`MultiEdit` outside `.m/` until the active phase has been entered through its skill. Writes inside `.m/` are always allowed. This is what makes the gates real rather than advisory.
+**Phase enforcement.** `/m:develop` writes marker files (`.m/DEVELOP_ACTIVE`, `.m/phase-<name>-started`/`-done`). The `enforce-develop-phase.py` `PreToolUse` hook denies `Edit`/`Write`/`MultiEdit` outside `.m/`, and any `Bash` command that writes outside `.m/` (output redirections, `tee`, in-place `sed`, `cp`/`mv`/`rm`/`touch`, working-tree `git` subcommands, inline interpreter writes), until the active phase has been entered through its skill. Auto mode steers Claude toward `sed` and heredoc edits instead of the file tools, which is why Bash is gated too. Writes inside `.m/` are always allowed, and read-only commands pass. This is what makes the gates real rather than advisory. Regression tests: `python3 hooks/test_enforce_develop_phase.py`.
 
-**Dual-engine (opt-in).** When you enable it per repo via `.m/pipeline.yml` `codex.enabled: true` (off by default), Codex runs as a second engine across the pipeline: `/m:plan` gets two blocking passes (Pass-1 architecture sanity, Pass-2 final-plan verdict), `/m:research` runs a parallel Codex researcher reconciled with Claude's, and `/m:review` / `/m:review-fanout` run Codex on every review with verdicts side-by-side. The stricter verdict always wins. Each run is **token-metered** against a budget (`token_budget`, default 200k) with a graceful fallback to Claude-only when the budget is reached, and an optional **fast mode**. Defaults and toggles: `references/pipeline-context.md`; full protocol: `references/codex-protocol.md`.
+**Second engine (opt-in, per repo).** Pick a provider via `.m/pipeline.yml` `second_engine.provider: codex | kimi | none` (default `none`; legacy `codex:` sections still work as a deprecated fallback). When a provider is selected it runs across the pipeline: `/m:plan` gets two blocking passes (Pass-1 architecture sanity, Pass-2 final-plan verdict), `/m:research` runs a parallel second researcher reconciled with Claude's, and `/m:review` / `/m:review-fanout` run it on every review with verdicts side-by-side. The stricter verdict always wins, and second-engine findings are leads to verify, never ground truth. Each run is **token-metered** against a budget (`token_budget`, default 200k) with graceful fallback to Claude-only. Schema and per-provider defaults: `references/pipeline-context.md`; protocols: `references/codex-protocol.md`, `references/kimi-protocol.md`. Configure interactively with `/m:setup`.
 
 **Fan-out review.** `/m:review-fanout` spawns blind specialist subagents in parallel — each sees only its lens — then a judge pass reconciles and dedupes at `file:line`. Lens prompts: `references/lens-templates.md`.
 
@@ -166,7 +167,8 @@ Five specialist skills. Three **auto-activate** when matching files are edited; 
 
 The pipeline **degrades gracefully** when these are absent:
 
-- **Codex CLI** (`codex` ≥ 0.123.0 on `PATH`) — enables the dual-engine passes across `/m:plan`, `/m:research`, and review when you opt in via `.m/pipeline.yml` `codex.enabled: true` (off by default). Token-metered per run with a budget + graceful fallback; optional fast mode (`codex.fast_mode`). Without it — or when left disabled — every stage runs Claude-only.
+- **Codex CLI** (`codex` ≥ 0.154.0 on `PATH`, the first release with `gpt-6-astra` in its model catalog; default model `gpt-6-astra`) — the `codex` provider for the second-engine passes across `/m:plan`, `/m:research`, and review, selected via `.m/pipeline.yml` `second_engine.provider: codex`. Token-metered per run with a budget + graceful fallback; optional fast mode.
+- **Kimi Code CLI** (`kimi` ≥ 0.29.0 on `PATH`) — the `kimi` provider, selected via `second_engine.provider: kimi`. Same passes and metering; review runs over a diff the pipeline prepares. **Prerequisite:** `kimi -p` auto-approves every tool call and has no read-only mode, so the protocol gates its passes on user-level deny rules for `Write`/`Edit`/`Bash` in `~/.kimi-code/config.toml`. Without them, Kimi passes are skipped and the run continues Claude-only. `/m:setup` adds the rules with your confirmation; the details and what was tested are in `references/kimi-protocol.md` §6.1. Without either CLI — or with `provider: none` (the default) — every stage runs Claude-only.
 - **`atlassian` MCP** — enables Jira enrichment when a request matches a Jira key and a per-project `.m/jira.yml` exists. Set up with:
   ```text
   claude mcp add --transport http --scope user atlassian https://mcp.atlassian.com/v1/mcp
@@ -182,15 +184,105 @@ m-pipeline/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── commands/          # 14 slash commands (plugin name `m` → invoked as /m:refine, /m:plan, …)
+├── commands/          # 15 slash commands (plugin name `m` → invoked as /m:refine, /m:plan, …)
 ├── skills/            # 5 expert-mode skills (/m:go, /m:react, /m:biz, /m:cr, /m:security)
-├── references/        # codex-protocol · jira-context · lens-templates · pipeline-context · checklists
-├── rules/             # rigor · self-serve · verification  (referenced via ${CLAUDE_PLUGIN_ROOT})
+├── references/        # codex-protocol · kimi-protocol · jira-context · lens-templates · pipeline-context · review-post-gate · checklists
+├── rules/             # rigor · self-serve · verification · code-quality · testing  (referenced via ${CLAUDE_PLUGIN_ROOT})
 ├── hooks/
 │   ├── hooks.json
-│   └── enforce-develop-phase.py
+│   ├── enforce-develop-phase.py
+│   └── test_enforce_develop_phase.py
+├── evals/             # fixtures, native eval cases, deterministic checks, and runner
 └── README.md
 ```
+
+## Evals
+
+Run fixture preflight, grader regression tests, and hook tests without model calls:
+
+```sh
+python3 evals/run.py --profile static
+```
+
+The runner needs Python 3.10+, Git, and Go. Paid profiles also need an authenticated
+Claude CLI with `plugin eval` support. The model and judge defaults are recorded in
+`evals/suite.json`; override them explicitly when comparing model configurations.
+
+```sh
+# One trial per selected case while developing a change.
+python3 evals/run.py --profile targeted --case 'implement--happy' --max-cost-usd 5
+
+# Three trials per case, including the documentation and execution groups.
+python3 evals/run.py --profile regression --max-cost-usd 60
+
+# Check semantic rubric labels before interpreting a new judge's scores.
+python3 evals/run.py --calibrate --max-cost-usd 3
+
+# Evaluate another plugin checkout against exactly the current suite.
+python3 evals/run.py --profile regression --baseline /path/to/baseline-checkout --max-cost-usd 100
+
+# Compare task quality with and without the plugin using a neutral request.
+python3 evals/run.py --profile regression --case implement--neutral --ablation with-without --max-cost-usd 15
+
+# Compare two compatible, completed reports.
+python3 evals/run.py --compare /path/to/before/result.json /path/to/after/result.json
+
+# Apply a checker fix to retained evidence without repeating model calls.
+python3 evals/run.py --regrade /path/to/completed/result.json
+
+# Buy fresh judge votes over complete evidence, without rerunning agents.
+python3 evals/run.py --regrade /path/to/completed/result.json --rejudge --concurrency 2 --max-cost-usd 60
+```
+
+The cost limit is checked between native launches. Claude's native limit can
+overshoot by the trials already in flight; concurrency defaults to one. Reports
+stay local under the ignored `evals/results/` directory.
+
+Each trial is `PASS`, `FAIL`, or `INVALID`. Missing fixtures, incomplete evidence,
+authentication failures, and permission denials blocking required fixture access
+or verification are invalid trials;
+they prevent a successful suite result. A pass requires every deterministic check
+and semantic grader to pass. Activation is a separate diagnostic and contributes
+no points. Documentation, smoke, and execution results are reported separately.
+Refused optional searches outside the workspace remain diagnostics when the agent
+can complete the task. Documentation cases read reference files frozen with the
+suite, so both plugin versions receive the same inputs.
+
+The runner preserves complete traces and final workspaces, including workspaces
+sealed by the native CLI. It only copies those artifacts; independent Go tests run
+in a fresh copy without the retained Git configuration. Oracle tests remain outside
+the evaluated plugin snapshot and are added after the agent stops. Phase checks
+require observed skill calls and completion-marker writes; final marker files alone
+do not establish phase order. These checks cover the prescribed marker protocol,
+not arbitrary shell-program semantics.
+The Go oracle requires passing test events for its named tests as well as exit 0,
+so a `TestMain` that skips execution cannot pass. Offline regrading creates a new
+report, keeps the original intact, and refuses changed prompts, fixtures, or oracle
+inputs. It records the source report and incurs no additional model cost.
+The controlled verification fixture's execution history counts repeated checks
+inside one shell loop; the trace must still show the command being invoked.
+
+The native CLI can shorten the evidence sent to semantic judges. Reports flag
+this as `semantic_evidence_truncated`; inspect those votes before attributing a
+failure to the plugin. `--rejudge` adds three fresh votes per LLM grader using every
+visible message and tool result from the saved trace. It preserves judge reasons,
+records the additional cost, and uses the original judge model. Its cost ceiling
+is divided among the three votes in flight. Judge effort is pinned to `low` and
+recorded with the replay code hash. Rejudge concurrency accepts one or two trials
+(three or six simultaneous votes) and reserves each trial's share before launching.
+Compare reports using the same judging
+method; a native judgment and a complete-evidence judgment are not interchangeable.
+
+Every report records models, CLI version, arguments, and hashes of plugin content,
+fixtures, oracles, and graders. Comparisons reject incompatible or incomplete runs.
+Use a fresh baseline after changing a fixture or grader. Keep the combined-input
+oracle cases and safe-query variant out of prompt tuning. Calibration uses labeled
+evidence summaries to audit rubric interpretation; it does not reproduce the native
+grader's internal voting prompt, so inspect disagreements against complete traces.
+
+Exit codes are `0` for pass, `1` for a behavioral failure, and `2` for invalid or
+incomplete evaluation. The chat-only refinement regression may expose the command's
+current persistence policy; retain that failure until the command behavior is fixed.
 
 ## License
 

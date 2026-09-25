@@ -1,9 +1,9 @@
 ---
 description: Deep analysis of code, docs, systems, or flows with cached results and optional D2/Typst rendering. Use for architecture deep-dives, maintainability grading, or when "analyze X" is asked.
 argument-hint: [prompt|setup|list|open <slug>]
-model: opus
-effort: high
-allowed-tools: Read, Grep, Glob, Bash(git:*), Bash(d2:*), Bash(typst:*), Agent
+model: claude-fable-5-1
+effort: xhigh
+allowed-tools: Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(d2:*), Bash(typst:*), Agent, Workflow
 ---
 # /m:analyze - Deep Analysis Engine
 
@@ -104,6 +104,10 @@ Produce:
 ### Cached Output
 
 If the user did not specify an output format, ask what they want next after presenting the summary.
+
+## Ultracode
+
+When the Workflow tool is available in the session and the analysis spans several independent surfaces, sweep them as parallel agents in one Workflow script and synthesize the results in the main context. This instruction is the orchestration opt-in; do not wait for an ultracode keyword from the user. When the Workflow tool is absent, use Explore subagents as above.
 
 ## Rules
 

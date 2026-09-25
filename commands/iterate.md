@@ -1,7 +1,7 @@
 ---
 description: Post-implementation verification loop — run tests, fix issues, re-check until exit predicate is satisfied or the 3-loop safety cap is reached. Use after /m:implement or when verifying recent code changes.
 argument-hint: [scope-or-check]
-model: sonnet
+model: claude-sonnet-5
 effort: high
 disable-model-invocation: false
 ---
@@ -21,6 +21,7 @@ If no explicit target is given, verify the most recent implementation in context
 - `.m/PROGRESS.md`
 - `.m/GAPS.md`
 - repo manifests and existing test scripts
+- `~/.claude/m-learning/ADAPTATIONS.md` (if present) — apply the HIGH and MEDIUM `iterate` adaptations and the `test_approach` preference recorded there; proceed normally if it does not exist. Current-session instructions always override a learned adaptation.
 
 ## Workflow
 
@@ -103,18 +104,54 @@ Brief log of what each loop found and fixed (1-2 lines per loop).
 - Tests green: yes / no — {command and exit code}
 - Zero critical review findings: yes / no / n/a — {count and severity}
 - PROGRESS.md updated: yes / no
+- PRD Success Criteria satisfied: yes / no / n/a — {which criteria, or n/a if no `.m/PRD-*.md`}
 ### Verdict
 
 Use `PASSED` or `BLOCKED` for the final verdict.
 
-- `PASSED` requires all three exit-predicate clauses = yes (or `n/a` for clause 2 when no review was run).
-- `BLOCKED` means at least one clause failed. Name which one(s) and why.
+- `PASSED` requires all four exit-predicate clauses = yes (or `n/a` for clause 2 when no review was run, and `n/a` for clause 4 when no `.m/PRD-*.md` exists for this change).
+- `BLOCKED` means at least one clause failed. List every unmet clause by name with the evidence that it is unmet, as a bullet per clause:
+
+  ```
+  Unmet clauses:
+  - Tests green: no — {command}, exit {code}, {N} failing: {names}
+  - Zero critical findings: no — {count} critical: {short titles}
+  ```
+
+  A `BLOCKED` verdict that does not enumerate its unmet clauses is incomplete. The
+  next stage reads this list to know what to fix.
+
+## Learning Signal
+
+After the verdict is determined, append one JSON line to
+`~/.claude/m-learning/signals/pipeline-events.jsonl` with the file tools —
+never a Bash `echo`, matching the append convention in `/m:develop`:
+
+```json
+{"timestamp":"<ISO-8601 UTC>","type":"iterate_loop","project":"<repo dir basename>","loops":N,"verdict":"PASSED|BLOCKED","failed_clause":null,"per_loop":[{"loop":1,"fixed":0,"remaining":0,"new":0}]}
+```
+
+The `per_loop` array reuses the counts already emitted as the
+`Loop {n}/3: {fixed_count} fixed, {remaining_count} remaining, {new_count} new`
+progress line, one entry per loop actually run.
+
+`failed_clause` names the first unsatisfied clause of the exit predicate —
+one of `tests_green`, `zero_critical_findings`, `progress_updated`, or
+`prd_criteria` — and is `null` on a `PASSED` verdict.
+
+Signal writing is non-blocking. A failed append never changes the verdict,
+never fails the run, and is reported as one line in chat.
+
+The signals file is global and concurrent `/m:*` sessions append to it at
+once. Build the whole record first and append it as one complete line in a
+single write; never rewrite or reflow lines that are already in the file.
 
 ## Rules
 
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` for the entire iterate run. No shortcuts: never declare `PASSED` on the loop-count cap, never claim "tests pass" without quoting the command and exit code, never assume a fix worked without re-running the check, never collapse a PRD success-criterion check because verifying it "feels expensive". Use tools fully: run the actual test/lint/build commands, Read every fixed region after the edit, Grep for related call sites the fix may have broken. Do not compress reasoning — every loop carries forward the full failure context, not a summary.
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/self-serve.md`. Resolve every factual question via tools before pausing the loop to ask the user. Run the test, Read the failing region, Grep the symbol. Only `[USER-INTENT]` residues (acceptance-criterion ambiguity that no source resolves, scope decisions outside the PRD) interrupt iteration.
 - Re-run the relevant checks after every fix loop
+- An intermittently failing test is characterized before it is judged: re-run it several times, report the observed pass/fail pattern as an open item, and never let a single green re-run count as conclusive
 - Keep CURRENT issues separate from PRE-EXISTING gaps
 - If there are no tests, say that explicitly and fall back to the best available verification
 - If the repo is incomplete or missing build metadata, say exactly what could not be verified and why
