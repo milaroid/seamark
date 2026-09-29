@@ -1,14 +1,18 @@
 <div align="center">
 
-# `/m:*` — the m-pipeline
+<img src="assets/seamark.svg" alt="Seamark logo: two channel posts with a dot between them" width="64">
 
-### A spec-driven software-delivery pipeline for [Claude Code](https://docs.claude.com/en/docs/claude-code)
+# Seamark
+
+### No spec, no ship.
+
+**A spec-driven software-delivery pipeline for [Claude Code](https://docs.claude.com/en/docs/claude-code).** The commands keep the `/m:` prefix.
 
 *Requests are grilled into specifications, plans are challenged until zero gaps remain, and code ships only after gated review and a verification loop.*
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)
-![Commands](https://img.shields.io/badge/commands-15-3b6ea5)
-![Skills](https://img.shields.io/badge/expert%20skills-5-3b6ea5)
+![Commands](https://img.shields.io/badge/commands-16-0e7c7b)
+![Skills](https://img.shields.io/badge/expert%20skills-5-0e7c7b)
 ![Review](https://img.shields.io/badge/second%20engine-Codex%20%7C%20Kimi-4c9a6b)
 ![Gates](https://img.shields.io/badge/phases-hook--enforced-c0563a)
 
@@ -32,7 +36,7 @@ The phases run in order, and each must prove it finished before the next can sta
 
 Project memory in `.m/` is read and written by every stage; support commands (index, status, analyze, learn) build it, and expert modes (go, react, biz, cr, security) clip onto implement.
 
-> See the full architecture diagram and design notes at **[milorad.io](https://milorad.io)**.
+> See the interactive pipeline board and every stage's specification at **[slash-m.dev](https://slash-m.dev/m-pipeline)**.
 
 ---
 
@@ -185,7 +189,8 @@ m-pipeline/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
-├── commands/          # 15 slash commands (plugin name `m` → invoked as /m:refine, /m:plan, …)
+├── assets/            # Seamark logo
+├── commands/          # 16 slash commands (plugin name `m` → invoked as /m:refine, /m:plan, …)
 ├── skills/            # 5 expert-mode skills (/m:go, /m:react, /m:biz, /m:cr, /m:security)
 ├── references/        # codex-protocol · kimi-protocol · jira-context · lens-templates · pipeline-context · review-post-gate · checklists
 ├── rules/             # rigor · self-serve · verification · code-quality · testing  (referenced via ${CLAUDE_PLUGIN_ROOT})
