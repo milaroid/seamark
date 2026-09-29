@@ -2,7 +2,7 @@
 description: Create an actionable implementation plan grounded in repo patterns and user-confirmed decisions. Uses second-engine (Codex or Kimi, config-driven) sanity passes and a grill loop until zero gaps. Use after /m:refine or when starting a non-trivial change.
 argument-hint: [refined-request]
 model: claude-opus-5-5
-effort: xhigh
+effort: high
 allowed-tools: Read, Grep, Glob, Agent, Bash(git:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .m/handoff/:*), Bash(rm -rf .m/handoff/:*)
 ---
 # /m:plan - Master Planner

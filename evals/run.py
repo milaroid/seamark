@@ -16,6 +16,7 @@ import sys
 import tempfile
 
 from checks import InvalidRun, KINDS, Trace, file_hashes, grade_trial
+from selection import case_model, noise_floor, split_cases
 
 
 EVALS = Path(__file__).resolve().parent
@@ -84,10 +85,10 @@ def preflight(name, case, evals=EVALS):
                 raise InvalidRun(f"{name}: unexpected fixture diff: {result.stdout!r}")
             if (workspace / "go.mod").exists():
                 result = subprocess.run(["go", "test", "./..."], cwd=workspace, capture_output=True, text=True, timeout=90)
-                if result.returncode:
-                    raise InvalidRun(f"{name}: baseline Go tests fail: {result.stdout}{result.stderr}")
+                if bool(result.returncode) != case.get("initial_tests_fail", False):
+                    raise InvalidRun(f"{name}: baseline Go tests exit {result.returncode}: {result.stdout}{result.stderr}")
         if name.startswith("iterate--"):
-            expected = [1, 0, 1] if name == "iterate--edge" else ([1] if name == "iterate--failure" else [0])
+            expected = case.get("initial_checks") or ([1, 0, 1] if name == "iterate--edge" else ([1] if name == "iterate--failure" else [0]))
             observed = [subprocess.run([sys.executable, "check.py"], cwd=workspace, capture_output=True, timeout=90).returncode for _ in expected]
             if observed != expected:
                 raise InvalidRun(f"{name}: check sequence {observed}, expected {expected}")
@@ -105,7 +106,7 @@ def copy_plugin(source, destination):
     # The canonical suite is attached to both arms. Private oracles stay with
     # the coordinator and are injected only after the agent has stopped.
     shutil.copytree(EVALS, destination / "evals", ignore=shutil.ignore_patterns(
-        "results", "oracles", "__pycache__", "*.pyc", "run.py", "checks.py", "test_*.py", "calibration",
+        "results", "oracles", "__pycache__", "*.pyc", "run.py", "checks.py", "test_*.py", "calibration", "split.json", "selection.py",
     ))
     # Documentation inputs are part of the canonical suite, identical in both
     # plugin arms even when their command implementations differ.
@@ -115,7 +116,7 @@ def copy_plugin(source, destination):
 def native_command(plugin, name, output, args, budget, case):
     command = [
         "claude", "plugin", "eval", str(plugin), "--case", name,
-        "--runs", str(args.runs), "--model", args.model, "--judge-model", args.judge_model,
+        "--runs", str(args.runs), "--model", case_model(plugin, name, args), "--judge-model", args.judge_model,
         "--concurrency", str(args.concurrency), "--ablation", args.ablation,
         "--scaffold", "--keep-temp", "--no-publish", "--trust-plugin",
         "--mocks", "record", "--max-cost-usd", str(budget), "--output-dir", str(output),
@@ -199,7 +200,8 @@ def run_suite(args, suite, selected, initial, output):
         "checker_hash": hashlib.sha256(CHECKER_SOURCE).hexdigest(),
         "plugin_hashes": {name: digest({p: h for p, h in file_hashes(path).items() if not p.startswith("evals/")}) for name, path in snapshots.items()},
         "fixture_hashes": {name: digest(initial[name]) for name in selected},
-        "max_cost_usd": args.max_cost_usd, "commands": [],
+        "max_cost_usd": args.max_cost_usd, "commands": [], "split": args.split,
+        "case_models": {label: {name: case_model(path, name, args) for name in selected} for label, path in snapshots.items()},
     }
     report = {"metadata": metadata, "trials": [], "native_cost_usd": 0.0, "complete": False}
     save(output / "result.json", report)
@@ -285,7 +287,7 @@ def compare(left_path, right_path):
     left, right = (json.loads(path.read_text()) for path in (left_path, right_path))
     if any(not isinstance(report, dict) or not isinstance(report.get("metadata"), dict) for report in (left, right)):
         raise InvalidRun("comparison requires normalized runner reports")
-    keys = ("claude_version", "suite_hash", "oracle_hash", "checker_hash", "fixture_hashes", "model", "judge_model", "judge_method", "judge_effort", "judge_runner_hash", "runs", "ablation", "cases", "concurrency")
+    keys = ("claude_version", "suite_hash", "oracle_hash", "checker_hash", "fixture_hashes", "model", "judge_model", "judge_method", "judge_effort", "judge_runner_hash", "runs", "ablation", "cases", "concurrency", "split")
     mismatch = [key for key in keys if left["metadata"].get(key) != right["metadata"].get(key)]
     if mismatch:
         raise InvalidRun("incompatible comparison: " + ", ".join(mismatch))
@@ -297,7 +299,12 @@ def compare(left_path, right_path):
     before, after = rates(left), rates(right)
     if before.keys() != after.keys():
         raise InvalidRun("comparison arms differ")
-    print(json.dumps({name: {"before": before[name], "after": after[name], "delta": after[name]-before[name]} for name in before}, indent=2))
+    result = {name: {"before": before[name], "after": after[name], "delta": after[name]-before[name]} for name in before}
+    totals = [aggregate(report["trials"]) for report in (left, right)]
+    overall = {"before": totals[0]["pass_rate"], "after": totals[1]["pass_rate"], "noise_floor": noise_floor(totals[0]["trials"])}
+    overall["delta"] = overall["after"] - overall["before"]
+    overall["exceeds_noise"] = abs(overall["delta"]) > overall["noise_floor"]
+    print(json.dumps({**result, "overall": overall}, indent=2))
     return 0
 
 
@@ -338,6 +345,8 @@ def rejudge_trial(raw, name, trace_path, model, budget, audit_dir=None):
                 result = subprocess.run(command, input=prompt, cwd=cwd, capture_output=True, text=True, timeout=240)
             if audit_dir:
                 save(Path(audit_dir) / grader["name"] / f"{index}.json", {"stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode})
+            if '"error_max_budget_usd"' in result.stdout:
+                raise InvalidRun("rejudge budget exhausted; raise --max-cost-usd")
             try:
                 envelope = json.loads(result.stdout)
                 answer = envelope.get("structured_output")
@@ -440,6 +449,25 @@ def regrade(source, output=None, rejudge_budget=None, concurrency=1):
     return {"PASS": 0, "FAIL": 1, "INVALID": 2}[original["summary"]["status"]]
 
 
+def rejudge_run(output, args, code):
+    """Rejudge a completed paid run with full evidence and return the rejudged exit code.
+
+    The native judge reads truncated evidence, so its semantic verdicts are
+    unconfirmed. The rejudge spends what is left of --max-cost-usd after the
+    native run. It returns code unchanged, with a warning, when the run is
+    incomplete, when no budget is left, or when --native-judge-only is set.
+    """
+    if args.native_judge_only:
+        return code
+    report = json.loads((output / "result.json").read_text())
+    remaining = args.max_cost_usd - report["native_cost_usd"]
+    if not report.get("complete") or remaining <= 0:
+        print("WARNING: no full-evidence rejudge ran; native semantic verdicts are unconfirmed", flush=True)
+        return code
+    print(f"Rejudging with full evidence, budget ${remaining:.2f}", flush=True)
+    return regrade(output / "result.json", output.with_name(output.name + "-rejudged"), remaining, min(args.concurrency, 2))
+
+
 def calibrate(args, suite):
     """Audit semantic rubrics on labeled examples using a text-only judge."""
     examples = json.loads((EVALS / "calibration/examples.json").read_text())["examples"]
@@ -481,7 +509,9 @@ def main(argv=None):
     parser.add_argument("--profile", choices=("static", "targeted", "regression"), default="static")
     parser.add_argument("--case", action="append", default=[], help="Case glob; repeat to select multiple cases")
     parser.add_argument("--category", choices=("smoke", "documentation", "execution"))
-    parser.add_argument("--model")
+    parser.add_argument("--model", help='Model id, or "pinned" to run each case on its stage command\'s frontmatter model')
+    parser.add_argument("--runs", type=int, help="Trials per case; defaults to 3 for regression and 1 for targeted")
+    parser.add_argument("--split", choices=("train", "test"), help="Select only the cases assigned to this split in split.json")
     parser.add_argument("--judge-model")
     parser.add_argument("--concurrency", type=int, choices=range(1, 9), default=1)
     parser.add_argument("--max-cost-usd", type=float)
@@ -492,6 +522,7 @@ def main(argv=None):
     parser.add_argument("--calibrate", action="store_true", help="Audit semantic rubrics against labeled examples (uses the judge model)")
     parser.add_argument("--regrade", type=Path, help="Replay updated deterministic checks on a completed report without model calls")
     parser.add_argument("--rejudge", action="store_true", help="With --regrade: buy three new semantic votes using complete saved evidence")
+    parser.add_argument("--native-judge-only", action="store_true", help="Skip the automatic full-evidence rejudge after a paid run")
     args = parser.parse_args(argv)
     try:
         if args.compare:
@@ -504,6 +535,8 @@ def main(argv=None):
             raise InvalidRun("--rejudge requires --regrade")
         suite = suite_config()
         selected = sorted(name for name, case in suite["cases"].items() if (not args.case or any(fnmatch.fnmatchcase(name, pattern) for pattern in args.case)) and (not args.category or case["category"] == args.category))
+        if args.split:
+            selected = sorted(set(selected) & split_cases(args.split))
         if not selected:
             raise InvalidRun("no cases selected")
         if args.ablation == "with-without" and any(not suite["cases"][name].get("ablation") for name in selected):
@@ -532,11 +565,16 @@ def main(argv=None):
             raise InvalidRun("Claude CLI is logged out; run claude auth login before paid evals")
         if args.calibrate:
             return calibrate(args, suite)
+        args.fallback_model = suite["defaults"]["model"]
         args.model = args.model or suite["defaults"]["model"]
         args.judge_model = args.judge_model or suite["defaults"]["judge_model"]
-        args.runs = 3 if args.profile == "regression" else 1
+        if args.runs is not None and args.runs < 1:
+            raise InvalidRun("--runs must be at least 1")
+        args.runs = args.runs or (3 if args.profile == "regression" else 1)
+        if args.baseline and args.runs < 3:
+            raise InvalidRun("a baseline comparison needs --runs 3 or more; one trial per case cannot separate the arms from noise")
         output = (args.output_dir or EVALS / "results" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")).resolve()
-        return run_suite(args, suite, selected, initial, output)
+        return rejudge_run(output, args, run_suite(args, suite, selected, initial, output))
     except (InvalidRun, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         print(f"INVALID: {error}", file=sys.stderr)
         return 2

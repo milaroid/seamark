@@ -29,7 +29,7 @@ Marker protocol
 `.m/DEVELOP_ACTIVE` is written by `/m:develop` on pipeline entry and
 deleted on pipeline exit. It is a single-line YAML-ish file:
 
-    current_phase: <refine|plan|implement|review|iterate>
+    current_phase: <refine|plan|implement|review|iterate|readiness>
 
 Each `/m:*` phase skill is required to:
 
@@ -54,7 +54,9 @@ Relative paths resolve against the `cwd` the payload carries, which is the
 directory the tool call runs in.
 
 Everything else under the project root is blocked until the active phase
-is entered via its skill.
+is entered via its skill. During readiness it remains blocked even after
+entry: the assessment never edits the application. Bookkeeping under .m/
+and read-only commands remain allowed.
 
 Denial signals
 --------------
@@ -84,7 +86,7 @@ from bash_write_targets import OPAQUE_TARGET, bash_write_targets
 FILE_TOOLS = {"Edit", "Write", "MultiEdit"}
 GATED_TOOLS = FILE_TOOLS | {"Bash"}
 
-KNOWN_PHASES = {"refine", "plan", "implement", "review", "iterate"}
+KNOWN_PHASES = {"refine", "plan", "implement", "review", "iterate", "readiness"}
 
 SIGNAL_FILE = "gate-denials.jsonl"
 MAX_RECORD_BYTES = 4096
@@ -210,7 +212,8 @@ def record_denial(project_root, phase, tool_name, target_path, reason) -> None:
     `reason` is `missing_phase_marker` when the active phase was never
     entered through its skill, or `unreadable_marker` when DEVELOP_ACTIVE
     is present but carries no parseable `current_phase:` line, in which
-    case `phase` is None.
+    case `phase` is None. `read_only_phase` records an attempted mutation
+    outside bookkeeping during readiness.
 
     Must only be called after `emit_deny` has already flushed the decision.
     Nothing here can suppress a denial, but it can still fail or stall, so
@@ -300,7 +303,8 @@ def enforce_phase(project_root: str, tool_name: str, target: str) -> None:
 
     Emits the decision first and records the denial signal second, so the
     signal path can never suppress the decision. Returns without output when
-    the phase's `-started` marker exists.
+    a writable phase's `-started` marker exists. Readiness never permits
+    mutation outside bookkeeping, even after entry.
     """
     active_path = os.path.join(project_root, ".m", "DEVELOP_ACTIVE")
     current_phase = parse_current_phase(active_path)
@@ -313,6 +317,19 @@ def enforce_phase(project_root: str, tool_name: str, target: str) -> None:
         )
         record_denial(
             project_root, None, tool_name, signal_target, "unreadable_marker"
+        )
+        return
+
+    if current_phase == "readiness":
+        emit_deny(
+            "/m:readiness is a read-only release assessment. Writes outside "
+            "`.m/` are blocked even after the phase has started. Return fixes "
+            "through /m:plan or /m:implement, then review and iterate before "
+            f"reassessing readiness. Blocked target: {describe_target(target)}."
+        )
+        record_denial(
+            project_root, current_phase, tool_name, signal_target,
+            "read_only_phase",
         )
         return
 

@@ -1629,6 +1629,241 @@
         ".m/lens-reports.md"
       ],
       "initial_diff": []
+    },
+    "iterate--fix-in-scope": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:iterate",
+          "arm": "with"
+        },
+        {
+          "id": "verification-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "check.py",
+            "verification.json",
+            "email_test.go",
+            ".m/PRD-verification.md"
+          ]
+        },
+        {
+          "id": "checks-executed",
+          "kind": "command",
+          "argv": [
+            "python3",
+            "check.py"
+          ],
+          "min": 2
+        },
+        {
+          "id": "observed-check-results",
+          "kind": "history",
+          "min": 2,
+          "exit_codes": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "fixed-in-scope",
+          "kind": "changed",
+          "paths": [
+            "email.go"
+          ]
+        },
+        {
+          "id": "independent-tests",
+          "kind": "oracle",
+          "file": "normalize_whitespace_test.go"
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "PASSED"
+          ]
+        },
+        {
+          "id": "progress-recorded",
+          "kind": "changed",
+          "paths": [
+            ".m/PROGRESS.md"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "check.py",
+        "verification.json",
+        ".m/PRD-verification.md",
+        ".m/REVIEW.md"
+      ],
+      "initial_diff": [
+        "email.go"
+      ],
+      "initial_tests_fail": true,
+      "initial_checks": [
+        1
+      ]
+    },
+    "refine--unshipped-dependency": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:refine",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "bookkeeping-only",
+          "kind": "changes",
+          "paths": [
+            ".m/*"
+          ]
+        },
+        {
+          "id": "not-ready",
+          "kind": "absent",
+          "paths": [
+            ".m/phase-refine-done"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        ".m/TASKS.md",
+        "invoices.go"
+      ],
+      "initial_diff": []
+    },
+    "review--caller-contract": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "invoice.go"
+      ],
+      "initial_diff": [
+        "amount.go",
+        "amount_test.go"
+      ]
+    },
+    "review--guard-outside-hunk": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "APPROVED",
+            "APPROVED WITH WARNINGS"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "store.go"
+      ],
+      "initial_diff": [
+        "greeting.go"
+      ]
+    },
+    "review--weakened-test": {
+      "category": "execution",
+      "checks": [
+        {
+          "id": "skill-invoked",
+          "kind": "skill",
+          "name": "m:review",
+          "arm": "with"
+        },
+        {
+          "id": "source-preserved",
+          "kind": "unchanged",
+          "paths": [
+            "*.go",
+            "go.mod"
+          ]
+        },
+        {
+          "id": "expected-verdict",
+          "kind": "verdict",
+          "values": [
+            "BLOCKED"
+          ]
+        }
+      ],
+      "ablation": false,
+      "required_files": [
+        "go.mod",
+        ".m/INDEX.md",
+        ".m/pipeline.yml",
+        "discount_test.go"
+      ],
+      "initial_diff": [
+        "discount.go",
+        "discount_test.go"
+      ]
     }
   }
 }

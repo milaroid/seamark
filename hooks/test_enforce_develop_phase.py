@@ -221,6 +221,25 @@ class PhaseGate(unittest.TestCase):
         self.assertIsNone(records[1]["path"])
         self.assertNotIn("/", str(records[0]["project"]))
 
+    def test_readiness_is_read_only_after_entry(self):
+        make_project(self.project, phase="readiness", started=True)
+        tests = [
+            ("source edit denied", "Edit", {"file_path": os.path.join(self.project, "src", "app.go")}, True),
+            ("bash write denied", "Bash", {"command": "sed -i 's/a/b/' src/app.go"}, True),
+            ("bookkeeping allowed", "Write", {"file_path": os.path.join(self.project, ".m", "READINESS.md")}, False),
+            ("read-only command allowed", "Bash", {"command": "git log --oneline -3"}, False),
+        ]
+        for name, tool, tool_input, expect_deny in tests:
+            with self.subTest(name):
+                code, out = run_hook(self.payload(tool, tool_input), self.home)
+                self.assertEqual(code, 0)
+                self.assertEqual(denied(out), expect_deny)
+        signal = os.path.join(self.home, ".claude", "m-learning", "signals", "gate-denials.jsonl")
+        with open(signal, encoding="utf-8") as f:
+            records = [json.loads(line) for line in f]
+        self.assertEqual({r["phase"] for r in records}, {"readiness"})
+        self.assertEqual({r["reason"] for r in records}, {"read_only_phase"})
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
