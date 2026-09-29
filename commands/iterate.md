@@ -1,7 +1,7 @@
 ---
 description: Post-implementation verification loop — run tests, fix issues, re-check until exit predicate is satisfied or the 3-loop safety cap is reached. Use after /m:implement or when verifying recent code changes.
 argument-hint: [scope-or-check]
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: high
 disable-model-invocation: false
 ---

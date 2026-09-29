@@ -34,6 +34,7 @@ Then print:
 | `/m:develop` | Run the end-to-end workflow | You want Claude to orchestrate the whole delivery |
 | `/m:analyze` | Deep analysis with optional cached outputs | Architecture, security, flows, docs, proposals |
 | `/m:feedback` | Store explicit workflow preferences | The user wants persistent Claude-side learning |
+| `/m:readiness` | Assess release, deployment, recovery, monitoring, and capacity evidence | Before launch or after major data migration/runtime infrastructure changes |
 | `/m:learn` | Generate or inspect learned adaptations | The user wants to analyze stored signals |
 | `/m:setup` | Diagnose and configure the second engine (codex, kimi, or none) | Checking or changing the second-engine provider, CLI, auth, model, effort |
 
@@ -58,6 +59,7 @@ Four security surfaces exist; pick by scope:
 |------|-----|
 | Security review of a specific diff / PR / commit (evidence-only, read-only) | `/m:cr` |
 | Broad standing-codebase audit, threat model, or OWASP/CWE sweep (not diff-scoped) | `/m:security` |
+| Release go/no-go with runtime, rollback, restore, alerts, and capacity evidence | `/m:readiness` |
 | Go backend security inside a normal code review | `/m:review` (auto-delegates the security pass to the `go-security-reviewer` agent) |
 | Compliance (SOC2 / GDPR / EU AI Act) | `/m:review` or `/m:review-fanout` — the compliance pass fires automatically on repos whose `.m/pipeline.yml` sets `compliance.enabled` |
 
@@ -73,6 +75,7 @@ Four security surfaces exist; pick by scope:
 /m:iterate
 /m:develop Harden claim document authorization
 /m:analyze overall architecture and style; grade it
+/m:readiness HEAD staging
 ```
 
 ### Memory Sources
@@ -90,6 +93,12 @@ Four security surfaces exist; pick by scope:
 `/m:develop` runs all five phases in order: **refine → plan → implement → review → iterate**. Every size runs the full pipeline. No stage is optional. No skips. No "trivial enough" bypass. The order is not ceremony: refine and plan front-load the assumptions that implement and review would otherwise guess at, which is what keeps the downstream stages cheap. Skipping them does not save work, it moves the work to where it costs more. Each phase is a discrete Skill invocation, and a `PreToolUse` hook (`enforce-develop-phase.py`) blocks file mutations outside `.m/` until the current phase has been entered via its skill. The hook validates `Edit`, `Write`, `MultiEdit`, and any Bash command that writes outside `.m/`. Marker files `.m/phase-<name>-started` and `-done` gate each transition, and `.m/DEVELOP_ACTIVE` records the current phase. The iterate exit predicate (tests green + zero critical findings + progress recorded + PRD criteria met) is the completion gate, not the loop count. `PASSED` requires the predicate; a loop-count exit is `BLOCKED`.
 
 The review variant is selected by change shape, not by preference: 1 to 3 files goes to `/m:review`, 4 or more files or a change crossing layers goes to `/m:review-fanout`. The second engine (Codex or Kimi) is config-driven, not prompted: it runs automatically on plan, research, and review whenever `.m/pipeline.yml` sets `second_engine.provider` to `codex` or `kimi`. The default is `none`, which runs Claude-only. It is not gated on how high-stakes the change looks.
+
+For releases, major data migrations, runtime infrastructure changes, or
+`readiness.required: true`, `/m:develop` runs `/m:readiness` after iterate. Claude
+and Codex share `${CLAUDE_PLUGIN_ROOT}/references/readiness.md`. Required FAIL or UNVERIFIED
+checks block readiness. Standalone readiness reports in chat without creating
+`.m/` state; a READY verdict does not deploy or authorize deployment.
 
 ### Defaults
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` to every `/m:*` invocation. No shortcuts (skipped phases, paraphrased requirements, `--no-verify` gates), full tool use (Read every cited file, run tests instead of predicting them, prefer `context7` and `atlassian` MCPs over recall, parallel independent calls), no compression of reasoning or verification work to save tokens. Simplified Technical English is an output filter only.

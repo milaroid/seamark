@@ -1,8 +1,8 @@
 ---
-description: Run the full /m delivery pipeline end-to-end (refine → plan → implement → review → iterate). Use when user wants a complete request delivered with quality gates, dual-engine review, and phase enforcement.
+description: Run the full /m delivery pipeline end-to-end (refine → plan → implement → review → iterate), followed by readiness for releases and operational changes. Use when user wants a complete request delivered with quality gates, dual-engine review, and phase enforcement.
 argument-hint: [request]
 model: claude-opus-5-5
-effort: xhigh
+effort: high
 disable-model-invocation: true
 ---
 # /m:develop - End-to-End Delivery Workflow
@@ -28,7 +28,7 @@ blocked until the skill is invoked.
 - `.m/DEVELOP_ACTIVE` — single-line marker written at pipeline entry,
   deleted at pipeline exit. Contents:
   ```
-  current_phase: <refine|plan|implement|review|iterate>
+  current_phase: <refine|plan|implement|review|iterate|readiness>
   ```
 - `.m/phase-<name>-started` — created by each phase skill on entry.
 - `.m/phase-<name>-done` — created by each phase skill on successful exit.
@@ -86,12 +86,19 @@ always allowed so the protocol itself can run.
 The pipeline runs these stages in sequence. Each stage produces input the next stage depends on, which is what keeps the pipeline cheap:
 
 ```
-index (if needed) → refine → plan → classify → implement → review → iterate → update → learn (if threshold crossed)
+index (if needed) → refine → plan → classify → implement → review → iterate → readiness (when required) → update → learn (if threshold crossed)
 ```
 
 **Refine runs first.** Invoke `/m:refine` via the Skill tool before any other work. Refine surfaces the assumptions that plan and implement would otherwise guess at, so its output is what makes the downstream stages cheap.
 
 **Plan runs after refine.** Invoke `/m:plan` via the Skill tool once refine completes. Plan grounds implementation in user-confirmed decisions, which is what prevents impl-time improvisation.
+
+**Readiness follows verification when required.** Read
+`${CLAUDE_PLUGIN_ROOT}/references/readiness.md` to determine whether the requested release,
+major data migration, or runtime infrastructure change requires this gate. Also
+run it when `.m/pipeline.yml` sets `readiness.required: true`. Determine applicability
+during planning and preserve it in the handoff. The five core phases remain
+mandatory for every size; readiness adds a release assessment, not deployment.
 
 **Checkpoint line.** Before each stage transition, emit a line confirming the previous stage ran:
 `[checkpoint] {stage_name} complete — output: {key artifact or verdict}`
@@ -123,7 +130,15 @@ Read these when available (reading context does NOT replace running refine/plan)
 5. **IMPLEMENT** — Verify `.m/phase-plan-done` exists. Update `.m/DEVELOP_ACTIVE` to `current_phase: implement`. Invoke `Skill(skill="m:implement")`. All code mutation happens inside this skill.
 6. **REVIEW** — Verify `.m/phase-implement-done` exists. Update `.m/DEVELOP_ACTIVE` to `current_phase: review`. Invoke the appropriate review skill (see Review Selection below) via the Skill tool. The second engine runs in-stage on every review when `second_engine.provider` is `codex` or `kimi`.
 7. **ITERATE** — Verify `.m/phase-review-done` exists. Update `.m/DEVELOP_ACTIVE` to `current_phase: iterate`. Invoke `Skill(skill="m:iterate")`. Run until the **exit predicate** is satisfied (tests green + zero critical review findings + `.m/PROGRESS.md` updated + PRD Success Criteria satisfied when a `.m/PRD-*.md` exists) or the 3-loop safety cap is reached. `PASSED` requires the predicate, not just the cap.
-8. **EXIT PIPELINE** — Delete `.m/DEVELOP_ACTIVE`. Update `.m/TASKS.md`, `.m/PROGRESS.md`, and `.m/GAPS.md` with the outcome. Then append one outcome signal to `~/.claude/m-learning/signals/outcomes.jsonl` (create the file if absent) so `/m:learn` can derive adaptations — a single JSON line of the form `{"timestamp":"<ISO-8601>","type":"outcome","skill":"develop","project":"<repo dir basename>","request":"<one-line summary>","stages":"<e.g. refine→plan→implement→review-fanout→iterate>","verdict":"<PASSED|BLOCKED>","loops":<n>,"second_engine":"<codex:agree|codex:disagree|kimi:agree|kimi:disagree|n/a>"}` (use the `timestamp` key to match the existing signal schema; `project` is the repository directory basename, the same value the `phase_reentry` record uses. Note that `outcome` records are not matched by any row of `/m:learn`'s behavioral mapping table, which keys only on the five pipeline event types; they are read by its step 3 pattern detection, where `project` is what allows an outcome to be attributed to a project at all). Append with the file tools, not `echo`. This is passive telemetry and is separate from the opt-in `/m:feedback` signals.
+8. **READINESS (when required)** — Only after iterate returns PASSED, verify
+   `.m/phase-iterate-done`, set `current_phase: readiness`, and invoke
+   `Skill(skill="m:readiness")` with the release, environment, and prior evidence.
+   Apply the shared readiness contract. A required BLOCKED assessment makes the
+   delivery BLOCKED; a green iterate result cannot override it. Continue to exit
+   cleanup on either outcome. When not applicable, state the reason and do not
+   create a readiness completion marker. If the user explicitly excludes this
+   assessment, report readiness as not assessed without claiming release approval.
+9. **EXIT PIPELINE** — Delete `.m/DEVELOP_ACTIVE`. Update `.m/TASKS.md`, `.m/PROGRESS.md`, and `.m/GAPS.md` with the outcome. Then append one outcome signal to `~/.claude/m-learning/signals/outcomes.jsonl` (create the file if absent) so `/m:learn` can derive adaptations — a single JSON line of the form `{"timestamp":"<ISO-8601>","type":"outcome","skill":"develop","project":"<repo dir basename>","request":"<one-line summary>","stages":"<actual stages, including readiness when run>","verdict":"<PASSED|BLOCKED>","loops":<n>,"second_engine":"<codex:agree|codex:disagree|kimi:agree|kimi:disagree|n/a>"}` (use the `timestamp` key to match the existing signal schema; `project` is the repository directory basename, the same value the `phase_reentry` record uses. Note that `outcome` records are not matched by any row of `/m:learn`'s behavioral mapping table, which keys only on the five pipeline event types; they are read by its step 3 pattern detection, where `project` is what allows an outcome to be attributed to a project at all). Append with the file tools, not `echo`. This is passive telemetry and is separate from the opt-in `/m:feedback` signals.
 
    Finally, still within this step and only after `.m/DEVELOP_ACTIVE` has been deleted, consider a scoring run. Count the non-empty lines across every `.jsonl` file in `~/.claude/m-learning/signals/`, read the `Signals scored: <N>` value from the header line of `~/.claude/m-learning/ADAPTATIONS.md`, and invoke `Skill(skill="m:learn")` when the current total exceeds that stored value by **10 or more**.
 
@@ -192,6 +207,9 @@ Inherit the tier from `/m:implement`. The tier gates how the pipeline proceeds:
 - Apply `${CLAUDE_PLUGIN_ROOT}/rules/self-serve.md` at every stage. Before any user-facing question, resolve factual residues via Read, Grep, Glob, Bash, or MCP. Only `[USER-INTENT]` questions (scope, tradeoffs, business rules, preferences) reach the user. Every user-facing question is prefixed `[USER-INTENT]`.
 - Treat critical or high-risk review and verification issues as gates, not soft suggestions
 - `/m:iterate` may only emit `PASSED` when its four-clause exit predicate is green. A loop-count exit is `BLOCKED`, not `PASSED`
+- Delivery PASSED requires a successful iterate and READY from readiness when
+  that gate is required. No required FAIL or UNVERIFIED readiness check may be
+  bypassed by the iterate verdict, a numerical score, or a completion marker.
 - The second engine runs automatically on plan, research, and review when `second_engine.provider` is `codex` or `kimi`; it is config-driven, not prompted. The default is `none` (Claude-only)
 - When Claude's judge and the second engine disagree, the stricter verdict wins
 - Do not auto-create worktrees
@@ -217,5 +235,7 @@ Example: `refine → plan → implement → review-fanout (7 lenses) → codex s
 - Zero critical review findings: yes / no / n/a
 - PROGRESS.md updated: yes / no
 - PRD Success Criteria satisfied: yes / no / n/a
+- Release readiness: READY / BLOCKED / not applicable / explicitly not assessed
+  — include the assessed commit/artifact, environment, and required unmet checks
 ### Remaining Blockers
 ### Next Step

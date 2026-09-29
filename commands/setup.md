@@ -1,7 +1,7 @@
 ---
 description: Diagnose, then interactively configure (guided wizard — provider → model → effort → provider extras) the second review/plan engine for the /m pipeline — codex, kimi, or none. Covers CLI, auth, global config, per-repo second_engine block. Use to check "is the second engine ready for /m", to switch providers, or after installing/upgrading a CLI.
 argument-hint: "[--check]   (read-only diagnosis; omit to run the guided config wizard)"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: medium
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(codex --version), Bash(codex features list:*), Bash(kimi --version), Bash(kimi doctor), Bash(mkdir:*)
 ---

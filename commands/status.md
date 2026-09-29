@@ -1,7 +1,7 @@
 ---
 description: Show project status from .m/ — current focus, gaps, tasks, worktrees. Subcommands update task tracking. Use for "where are we", "what's left", "log a bug", "track progress".
 argument-hint: [gaps|task ...|done ...|progress ...|bug ...|debt ...|worktrees|cleanup]
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: medium
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(git:*)
 ---

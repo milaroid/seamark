@@ -95,7 +95,7 @@ Run together by `/m:develop`, or individually. Each is a real Skill with its own
 | ② | `/m:plan` | Builds the implementation plan and challenges it with a second-engine (Codex or Kimi) sanity pass — grilled until zero gaps remain. | Opus 5.5 |
 | ③ | `/m:implement` | Writes code **to the approved plan only**, following repo patterns. Plan defects escalate back to plan rather than being improvised past. | Opus 5.5 |
 | ④ | `/m:review` · `/m:review-fanout` | Evidence-backed review. Sequential for small diffs; parallel blind-lens fan-out (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) + judge for large ones. | Opus 5.5 |
-| ⑤ | `/m:iterate` | Test-and-fix loop until the exit predicate holds (tests green · zero critical findings · progress logged · PRD criteria met). The 3-loop cap is `BLOCKED`, never `PASSED`. | Sonnet 5 |
+| ⑤ | `/m:iterate` | Test-and-fix loop until the exit predicate holds (tests green · zero critical findings · progress logged · PRD criteria met). The 3-loop cap is `BLOCKED`, never `PASSED`. | Sonnet 5.5 |
 
 ---
 
@@ -106,19 +106,20 @@ Run together by `/m:develop`, or individually. Each is a real Skill with its own
 | Command | Purpose | Model |
 |---------|---------|:-----:|
 | `/m:develop` | Run all five phases end-to-end with hard phase gates and second-engine review. | Opus 5.5 |
-| `/m:refine` · `/m:plan` · `/m:implement` · `/m:review` · `/m:review-fanout` · `/m:iterate` | The phases, standalone (see table above). | Opus 5.5 / Sonnet 5 |
+| `/m:refine` · `/m:plan` · `/m:implement` · `/m:review` · `/m:review-fanout` · `/m:iterate` | The phases, standalone (see table above). | Opus 5.5 / Sonnet 5.5 |
+| `/m:readiness` | Release go/no-go from runtime, rollback, restore, alert, and capacity evidence. `/m:develop` runs it after iterate for releases, data migrations, and runtime infrastructure changes. Reports only; never deploys. | Opus 5.5 |
 
 **Support** — build, inspect, and learn from project memory:
 
 | Command | Purpose | Model |
 |---------|---------|:-----:|
 | `/m:index` | Build or refresh persistent `.m/` project memory (stack, patterns, hotspots). | Opus 5.5 |
-| `/m:status` | "Where are we" dashboard — focus, gaps, tasks, worktrees. Logs bugs and progress. | Sonnet 5 |
+| `/m:status` | "Where are we" dashboard — focus, gaps, tasks, worktrees. Logs bugs and progress. | Sonnet 5.5 |
 | `/m:research` | Isolated worktree research for unknowns before planning — advisory only. | Opus 5.5 |
 | `/m:analyze` | Deep analysis of code/docs/systems, with optional diagrams and grading. | Fable 5.1 |
-| `/m:setup` | Diagnose and configure the second engine — provider, model, effort, per-repo block. | Sonnet 5 |
+| `/m:setup` | Diagnose and configure the second engine — provider, model, effort, per-repo block. | Sonnet 5.5 |
 | `/m:feedback` | Store explicit workflow preferences (filesystem only, no inference). | Haiku 4.5 |
-| `/m:learn` | Turn stored feedback signals into per-skill behavioral adaptations. | Sonnet 5 |
+| `/m:learn` | Turn stored feedback signals into per-skill behavioral adaptations. | Sonnet 5.5 |
 | `/m:help` | Print the workflow reference — order, purposes, side-effect tiers. | Haiku 4.5 |
 
 ---
@@ -232,7 +233,28 @@ python3 evals/run.py --regrade /path/to/completed/result.json
 
 # Buy fresh judge votes over complete evidence, without rerunning agents.
 python3 evals/run.py --regrade /path/to/completed/result.json --rejudge --concurrency 2 --max-cost-usd 60
+
+# Run each case on the model that its stage command pins, as the pipeline ships.
+python3 evals/run.py --profile targeted --model pinned --runs 3 --case 'iterate--*' --max-cost-usd 20
+
+# Tune on the train split only. Score the held-out test split to accept a change.
+python3 evals/run.py --profile regression --split train --max-cost-usd 40
+python3 evals/run.py --profile regression --split test --max-cost-usd 20
 ```
+
+`evals/split.json` assigns about one third of each stage's cases to `test`. The
+seed is fixed and the assignment is random, not chosen by score. The agent under
+test never sees the file. Keep a skill change only when the train and test pass
+rates both rise. A `--baseline` run needs `--runs 3` or more. `--compare` reports
+an overall `noise_floor` of about `1/sqrt(trials)`. Treat a smaller delta as noise.
+
+The native judge reads truncated evidence. On 2026-09-29 it gave 4 false FAIL
+verdicts in 15 trials. After a complete paid run, the runner rejudges every
+semantic grader with three votes over the full saved trace. The rejudge uses the
+budget that remains under `--max-cost-usd` and writes `<output>-rejudged/`. Use
+the rejudged report as the result. A rejudge costs about $0.45 per trial, so set
+the limit to cover the agent runs plus the rejudge. `--native-judge-only` skips
+the rejudge; its semantic verdicts are then unconfirmed.
 
 The cost limit is checked between native launches. Claude's native limit can
 overshoot by the trials already in flight; concurrency defaults to one. Reports

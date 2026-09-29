@@ -1,7 +1,7 @@
 ---
 name: react
 description: Senior-level React and TailwindCSS development standards. Use when editing or reviewing .tsx, .jsx, React components, hooks, tailwind.config, or frontend state and styling.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: high
 user-invocable: false
 paths:

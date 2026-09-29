@@ -1,7 +1,7 @@
 ---
 description: Analyze stored /m:* learning signals and generate ADAPTATIONS.md when evidence is sufficient. Use to inspect or refresh per-skill behavioral adaptations derived from user feedback.
 argument-hint: [dry-run|explain <adaptation>|skill-name]
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: medium
 allowed-tools: Read, Grep, Glob, Edit, Write
 ---
@@ -33,7 +33,7 @@ Optional subcommand: `$ARGUMENTS`
    - HIGH: strong repeated evidence
    - MEDIUM: enough evidence to be useful
    - LOW: track only, do not apply
-5. For normal mode, write `~/.claude/m-learning/ADAPTATIONS.md`
+5. For normal mode, write `~/.claude/m-learning/ADAPTATIONS.md` and `~/.claude/m-learning/EVAL-CANDIDATES.md` (see Eval-case candidates)
 6. For `dry-run`, show what would change without writing
 7. For `explain`, show the evidence chain behind the selected adaptation
 
@@ -131,6 +131,41 @@ Adaptations are written only to `~/.claude/m-learning/ADAPTATIONS.md`. No
 adaptation may edit a command file or a skill file. Those files are scored
 against a committed evaluation baseline, and an automated edit would
 invalidate that baseline with no diff for the user to review.
+
+### Eval-case candidates
+
+An adaptation changes behavior in later runs. It does not tell the evaluation
+suite that a failure happened. The suite then stays at its ceiling, and later
+prompt or model changes cannot show whether they fix or repeat the failure. In
+normal mode, also write `~/.claude/m-learning/EVAL-CANDIDATES.md`, which
+proposes one eval case for each failure class that the suite does not cover.
+
+A failure class qualifies when at least one of these records exists since the
+last scoring run:
+
+- `iterate_loop` with `verdict` `BLOCKED`
+- `engine_disagreement` with `stricter_applied` true
+- `review_precision` with `findings_survived` below half of `findings_total`
+- an `outcome` with `verdict` `BLOCKED`
+
+Before you propose a case, find the suite: an `evals/suite.json` in the
+m-pipeline source checkout. Read its case names and each case's `prompt.md`.
+Skip a class that an existing case already covers. When no suite is found,
+propose the cases anyway and mark each one `coverage unchecked`. For each
+remaining class, write:
+
+- the source records: timestamp, project, and type
+- the failure class, in one sentence
+- a case name in the form `<stage>--<variant>`
+- a symptom-only prompt: what a user would report, with no hint of the answer
+- a minimal fixture: the files and the uncommitted change that reproduce the class
+- the expected behavior, as checkable claims, and the deterministic checks that
+  apply (`verdict`, `unchanged`, `changed`, `command`, `absent`, `oracle`)
+
+Propose at most five cases per run, and put the most recent failures first. Do
+not write into `evals/`, `suite.json`, or `split.json`. A person builds each
+case, runs its baseline, and adds it to a split. A proposal that the current
+models already pass adds no headroom. Say so when the baseline shows it.
 
 ## Application Rules
 
