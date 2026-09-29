@@ -5,13 +5,15 @@ import io
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
 
-from checks import InvalidRun, Trace, denial_blocks_contract, evaluate, file_hashes, grade_trial, phase_order, runs_command, verdict
-from run import EVALS, ROOT, aggregate, compare, copy_plugin, digest, preflight, preserve, regrade, rejudge_trial, save, semantic_evidence, suite_config
+from checks import InvalidRun, Trace, commands, denial_blocks_contract, evaluate, file_hashes, grade_trial, phase_order, runs_command, verdict
+from run import EVALS, ROOT, aggregate, compare, rejudge_run, copy_plugin, digest, preflight, preserve, regrade, rejudge_trial, save, semantic_evidence, suite_config
+from selection import case_model, noise_floor, pinned_model, split_cases
 
 
 def events(cwd, calls=(), final="PASSED"):
@@ -303,6 +305,9 @@ class RunnerTests(unittest.TestCase):
                 compare(left, right)
             rates = json.loads(output.getvalue())
             self.assertEqual(rates["candidate/with/example"]["delta"], -1)
+            self.assertEqual(rates["overall"]["delta"], -0.5)
+            self.assertEqual(rates["overall"]["noise_floor"], 0.707)
+            self.assertFalse(rates["overall"]["exceeds_noise"])
             self.assertEqual(rates["candidate/without/example"]["delta"], 0)
 
     def test_regrade_uses_retained_evidence_and_preserves_original(self):
@@ -353,6 +358,115 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaisesRegex(InvalidRun, "suite inputs changed"):
                 regrade(source / "result.json", root / "rejected")
 
+
+class ModelAndSplitTests(unittest.TestCase):
+    def test_pinned_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            plugin = Path(temp)
+            (plugin / "commands").mkdir()
+            (plugin / "commands/iterate.md").write_text("---\ndescription: x\nmodel: claude-sonnet-5-5\neffort: medium\n---\nbody model: other\n")
+            (plugin / "commands/help.md").write_text("---\ndescription: no pin\n---\n")
+            (plugin / "commands/plain.md").write_text("no frontmatter\n")
+            tests = [
+                ("stage pin", "iterate--happy", "claude-sonnet-5-5"),
+                ("no model key", "help--x", "fallback"),
+                ("no frontmatter", "plain--x", "fallback"),
+                ("no command", "unrelated-request-ignores-plugin", "fallback"),
+            ]
+            for name, case, want in tests:
+                with self.subTest(name):
+                    self.assertEqual(pinned_model(plugin, case, "fallback"), want)
+
+    def test_case_model_modes(self):
+        plugin = ROOT
+        pinned = SimpleNamespace(model="pinned", fallback_model="fallback")
+        fixed = SimpleNamespace(model="claude-opus-5-5", fallback_model="fallback")
+        self.assertEqual(case_model(plugin, "unrelated-request-ignores-plugin", pinned), "fallback")
+        self.assertEqual(case_model(plugin, "iterate--happy", fixed), "claude-opus-5-5")
+
+    def test_split_covers_suite_and_holds_out_every_stage(self):
+        suite = json.loads((EVALS / "suite.json").read_text())
+        train, test = split_cases("train"), split_cases("test")
+        self.assertFalse(train & test)
+        self.assertEqual(train | test, set(suite["cases"]))
+        stages = {name.split("--")[0] for name in suite["cases"] if name.count("--")}
+        for stage in stages:
+            with self.subTest(stage):
+                self.assertTrue(any(name.startswith(stage + "--") for name in test))
+                self.assertTrue(any(name.startswith(stage + "--") for name in train))
+
+    def test_split_file_hidden_from_agent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            copy_plugin(ROOT, Path(temp) / "plugin")
+            self.assertFalse((Path(temp) / "plugin/evals/split.json").exists())
+
+    def test_noise_floor(self):
+        tests = [("no trials", 0, None), ("37 cases one run", 37, 0.164), ("37 cases three runs", 111, 0.095)]
+        for name, trials, want in tests:
+            with self.subTest(name):
+                self.assertEqual(noise_floor(trials), want)
+
+
+class CommandParserTests(unittest.TestCase):
+    def test_commands_strip_keywords_and_assignments(self):
+        tests = [
+            ("plain", "python3 check.py; echo ok", [["python3", "check.py"], ["echo", "ok"]]),
+            ("loop body", "for i in 1 2; do python3 check.py; done", [["for", "i", "in", "1", "2"], ["python3", "check.py"], ["done"]]),
+            ("env prefix", 'GOCACHE="$TMPDIR/g" CGO=0 python3 check.py', [["python3", "check.py"]]),
+            ("if branch", "if true; then python3 check.py; else touch x; fi", [["if", "true"], ["python3", "check.py"], ["touch", "x"], ["fi"]]),
+            ("negation", "! python3 check.py", [["python3", "check.py"]]),
+            ("assignment only", "X=1; python3 check.py", [["python3", "check.py"]]),
+            ("argument kept", "echo A=1", [["echo", "A=1"]]),
+        ]
+        for name, command, want in tests:
+            with self.subTest(name):
+                self.assertEqual(commands(command), want)
+
+
+class HardCaseTests(unittest.TestCase):
+    def test_preflight_accepts_declared_red_start(self):
+        suite = suite_config()
+        name = "iterate--fix-in-scope"
+        self.assertTrue(preflight(name, suite["cases"][name]))
+
+    def test_preflight_rejects_undeclared_red_start(self):
+        suite = suite_config()
+        case = {k: v for k, v in suite["cases"]["iterate--fix-in-scope"].items() if k != "initial_tests_fail"}
+        with self.assertRaisesRegex(InvalidRun, "baseline Go tests exit"):
+            preflight("iterate--fix-in-scope", case)
+
+
+class RejudgeDefaultTests(unittest.TestCase):
+    def test_rejudge_default(self):
+        tests = [
+            ("complete run rejudges with remaining budget", True, 4, False, 0, 6),
+            ("opt out keeps native verdict", True, 4, True, 1, None),
+            ("incomplete run is not rejudged", False, 4, False, 1, None),
+            ("exhausted budget is not rejudged", True, 10, False, 1, None),
+        ]
+        for name, complete, spent, opt_out, want_code, want_budget in tests:
+            with self.subTest(name), tempfile.TemporaryDirectory() as scratch:
+                output = Path(scratch) / "run"
+                save(output / "result.json", {"complete": complete, "native_cost_usd": spent})
+                args = SimpleNamespace(native_judge_only=opt_out, max_cost_usd=10, concurrency=4)
+                with patch("run.regrade", return_value=0) as regrade_mock, contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(rejudge_run(output, args, 1), want_code)
+                if want_budget is None:
+                    regrade_mock.assert_not_called()
+                else:
+                    source, target, budget, concurrency = regrade_mock.call_args.args
+                    self.assertEqual((target.name, budget, concurrency), ("run-rejudged", want_budget, 2))
+
+    def test_budget_exhaustion_is_named(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            trace = Path(scratch) / "trace.jsonl"
+            trace.write_text("\n".join(json.dumps(e) for e in events(Path(scratch))))
+            raw = {"graders": [{"name": "criteria", "passed": False}]}
+            envelope = json.dumps({"subtype": "error_max_budget_usd", "is_error": True, "total_cost_usd": 0.07})
+            completed = subprocess.CompletedProcess([], 1, stdout=envelope, stderr="")
+            with patch("run.subprocess.run", return_value=completed):
+                with self.assertRaisesRegex(InvalidRun, "rejudge budget exhausted"):
+                    rejudge_trial(raw, "iterate--happy", trace, "claude-sonnet-5", 1.0)
 
 if __name__ == "__main__":
     unittest.main()

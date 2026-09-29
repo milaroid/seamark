@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 from flow_fixtures import prepare_decisions, prepare_review
+from hard_fixtures import prepare_hard
 
 
 EMAIL = '''package email
@@ -74,6 +75,14 @@ def scaffold(name):
     if any(p.name != ".git" for p in Path.cwd().iterdir()):
         raise RuntimeError("fixture requires an empty directory")
     git("init", "-q")
+    hard = prepare_hard(name, CHECK_SCRIPT)
+    if hard:
+        for files in hard:
+            for path, content in files.items():
+                write(path, content)
+            if files is hard[0]:
+                commit()
+        return
     if prepare_review(name, write):
         commit()
         return

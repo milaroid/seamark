@@ -111,12 +111,25 @@ def commands(command):
     segments, current = [], []
     for token in tokens + [";"]:
         if token and all(char in ";&|()\n" for char in token):
+            current = strip_prefixes(current)
             if current:
                 segments.append(current)
                 current = []
         else:
             current.append(token)
     return segments
+
+
+SHELL_KEYWORDS = {"do", "then", "else", "elif", "!", "{", "time"}
+ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def strip_prefixes(args):
+    """Drop leading shell keywords and NAME=value assignments before the command word."""
+    start = 0
+    while start < len(args) and (args[start] in SHELL_KEYWORDS or ASSIGNMENT.match(args[start])):
+        start += 1
+    return args[start:]
 
 
 def runs_command(call, wanted, require_success=False):
