@@ -1,0 +1,22 @@
+{
+  "name": "seamark",
+  "owner": {
+    "name": "Seamark contributors"
+  },
+  "plugins": [
+    {
+      "name": "seamark",
+      "source": "./",
+      "description": "End-to-end software delivery pipeline (refine → plan → implement → review → verify) with phase-marker enforcement, a configurable second engine for planning and review (Codex, Kimi, or none), parallel-lens fan-out review, Jira MCP integration, and per-stack expert modes."
+    },
+    {
+      "name": "seamark-status",
+      "source": {
+        "source": "github",
+        "repo": "milorad-teodorovic/m-statusline",
+        "sha": "f440e1b5eaecc38a79aa5ac1fca16a40ef611502"
+      },
+      "description": "Claude Code statusline with the Seamark mark, git and PR state, the live Seamark phase, and pace-aware usage bars. Single Python file, standard library only. Run /seamark-status:setup once to wire it into settings.json."
+    }
+  ]
+}

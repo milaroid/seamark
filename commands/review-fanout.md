@@ -1,0 +1,290 @@
+---
+description: Parallel-lens code review — blind specialist subagents (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) reconciled by a judge pass. Use for medium-to-large diffs (4+ files) or cross-stack changes.
+argument-hint: [target]
+model: claude-opus-5-5
+effort: xhigh
+allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .seamark/handoff/:*), Bash(rm -rf .seamark/handoff/:*), Agent, Workflow
+---
+# /seamark:review-fanout - Parallel-Lens Review
+
+Fan out a change set to several specialist reviewer subagents **in parallel**, each blind to the others, then reconcile their findings with a judge pass. Complements `/seamark:review` — use this when the target is medium/large, crosses domain boundaries, or needs breadth rather than a single deep serial sweep.
+
+## When to use this over `/seamark:review`
+
+- Change touches 4+ files or crosses layer boundaries (handler → service → repo → migration)
+- Change affects Go + React + infra at once
+- You want a second opinion on architecture without running the whole sequential pipeline twice
+- Pre-merge gate on a project whose `.seamark/pipeline.yml` requires compliance + security + architecture sign-off
+
+For small, single-file changes, use `/seamark:review`. Fanout has higher token cost and is only worth it when the lenses would genuinely disagree.
+
+## Input
+
+Target: `$ARGUMENTS`
+
+Same resolution rules as `/seamark:review` — explicit URL, PR URL, local diff, or Jira key.
+
+## Jira Context
+
+Follow the same Jira resolution flow as `/seamark:review` (see `${CLAUDE_PLUGIN_ROOT}/references/jira-context.md`). Prepend a **Jira Context** block to the final judge output.
+
+## Context Sources
+
+- `.seamark/jira.yml`, `.seamark/INDEX.md`, `.seamark/GAPS.md`, `PROJECT_INDEX.md`
+- Repo `AGENTS.md` / `CLAUDE.md`
+- `${CLAUDE_PLUGIN_ROOT}/rules/verification.md` — all lenses and the judge must apply these rules
+- The actual changed files and directly impacted adjacent code
+- `~/.claude/seamark-learning/ADAPTATIONS.md` (if present) — apply the HIGH and MEDIUM `review-fanout` adaptations and the `review_strictness` preference recorded there; proceed normally if it does not exist. Current-session instructions always override a learned adaptation.
+
+## Execution
+
+### Phase Marker Protocol
+
+This skill participates in the `/seamark:develop` phase gate. Follow this
+protocol on every invocation, including standalone runs:
+
+1. On entry, before any review work: run
+   `mkdir -p .seamark && touch .seamark/phase-review-started` via Bash.
+2. On successful completion (judge verdict emitted): run
+   `touch .seamark/phase-review-done`.
+3. On hard-block or mid-run abort: leave `-started` in place and do NOT
+   write `-done`.
+
+If `.seamark/DEVELOP_ACTIVE` is present and its `current_phase:` line does not
+read `review`, stop and tell the user — the pipeline is out of sync.
+
+### Step 0: Footprint + Lens Selection
+
+Measure the change:
+
+```bash
+git diff --shortstat
+git diff --shortstat --cached
+git diff --name-only
+```
+
+**Empty change set.** If there is no diff, nothing staged, and the target resolves to zero changed files, there is nothing to review — report "no change set to review" plainly, return an `N/A` verdict, and stop. Do not spawn lenses or fabricate findings for nonexistent code.
+
+Select which lenses to spawn based on what the diff actually touches. **Do not spawn lenses that have nothing to review** — lens-count is not a quality metric.
+
+| Lens | Spawn when the diff touches… | Subagent |
+|---|---|---|
+| **security** | Auth, input handling, query construction, crypto, cookies, secrets, file I/O | `go-security-reviewer` (Go targets) or `code-reviewer` with a security lens prompt |
+| **architecture** | New packages, cross-layer calls, interface changes, module boundaries, dependency flow | `code-reviewer` with an architecture lens prompt |
+| **tests** | Any business logic, auth, money, parsing, data integrity | `test-runner` + a test-quality lens |
+| **performance** | Hot paths, loops, DB queries, N+1 risk, concurrency | `code-reviewer` with a perf lens prompt |
+| **migrations** | `*.sql`, schema, data backfills, Alembic/GORM migrations | `code-reviewer` with a migration-safety lens prompt |
+| **observability** | Logging, metrics, tracing, error wrapping, panic recovery | `code-reviewer` with an observability lens prompt |
+| **api-contracts** | HTTP/gRPC handlers, request/response types, OpenAPI, versioned endpoints | `code-reviewer` with a contracts lens prompt |
+| **compliance** | Repo whose `.seamark/pipeline.yml` sets `compliance.enabled: true` | `code-reviewer` with the per-project compliance lens from `/seamark:review` Pass 4 |
+
+Minimum: always include security + architecture. Add the rest only when the diff justifies them.
+
+**Subagent model tier (cost control).** When spawning each lens via the Agent tool, set the `model` parameter by blast radius rather than letting every lens inherit the orchestrator's `opus`:
+
+- **`opus`** — `security`, `migrations`, and `compliance`. These carry the highest blast radius; the Go security-review policy and the `verification.md` migration / second-model floor require top-tier reasoning, so they are never downgraded.
+- **`sonnet`** — `architecture`, `tests`, `performance`, `observability`, and `api-contracts`. Each is scoped to a small file subset where Sonnet matches Opus on benchmarks, and the Opus judge pass reconciles their output.
+
+The judge pass always runs on the orchestrator's own model (`opus`), never a downgraded subagent. Tiering changes only which model each blind lens runs on — it never reduces the number of lenses or the rigor each one applies.
+
+### Step 1: Blind Fan-Out
+
+Spawn all selected lens subagents **in parallel, in a single message with multiple Agent tool calls** — each with the `model` from the Subagent model tier above. Each lens receives:
+
+- Only the files relevant to its lens (not the full diff)
+- A lens-specific system prompt (see Lens Prompt Templates below)
+- The shared verification rules from `${CLAUDE_PLUGIN_ROOT}/rules/verification.md`
+- **No output from any other lens.** Reviews must be blind; agreement theater is the failure mode to avoid.
+
+Each lens returns a structured report:
+
+```
+Lens: {lens_name}
+Files reviewed: {list}
+Findings: N (critical/high/medium/low)
+
+Critical:
+- [file:line] description + evidence snippet + why it matters
+
+High:
+- ...
+
+Clean areas:
+- ...
+
+Needs verification:
+- ...
+```
+
+Findings without exact `file:line` and a verbatim code snippet from Read() are discarded by the lens before returning (per verification.md).
+
+### Step 2: Judge Pass
+
+After all lenses return, the orchestrator (this command, in the main thread) runs a judge pass. **Do not spawn another subagent for the judge** — the judge needs full cross-lens context the subagents cannot share.
+
+Judge responsibilities:
+
+1. **Deduplicate.** Multiple lenses flagging the same `file:line` → merge into one finding, credit all lenses.
+2. **Resolve contradictions.** If security says "X is unsafe" and architecture says "X is fine because of Y middleware", Read the middleware and trace whether it covers the affected path. Show the competing claims, the evidence checked, and the resolution. Neither a permissive lens nor a majority vote proves a guard exists. If a credible critical finding cannot be resolved because the claimed mitigation is unavailable or its coverage cannot be established, retain it as an unresolved verification blocker and emit `BLOCKED`; name the evidence needed to resolve it. This rule applies within the judge pass as well as to second-engine disagreements. If inspected evidence disproves the finding, discard it with the counter-evidence and do not retain a precautionary critical.
+3. **Re-verify critical and high findings.** For every `critical` and `high` severity finding, Read the cited file and confirm the evidence. Discard unsupported claims or findings disproved by inspection (hallucination filter). Missing counter-evidence is not disproof of an otherwise credible critical. The final verdict must not be `APPROVED` or `APPROVED WITH WARNINGS` while such a critical remains unresolved. This matches the all-findings verification floor `/seamark:review` applies in its Step 3.
+4. **Cross-lens synthesis.** Look for issues only visible across lenses:
+   - Security says "input validated", architecture says "validator bypassed by new path" → cross-cut finding
+   - Tests say "happy path covered", contracts say "new error case added" → test gap
+5. **Rank** by merged severity.
+
+### Step 3: Second Engine (mandatory when a provider is selected)
+
+When `second_engine.provider` is `codex` or `kimi` (see `${CLAUDE_PLUGIN_ROOT}/references/pipeline-context.md`, including the legacy `codex:` fallback), the second-engine review runs on **every** fanout review automatically; there is no `y/n` prompt and no high-stakes gating. Follow the active provider's protocol Section 12 (`${CLAUDE_PLUGIN_ROOT}/references/codex-protocol.md` or `${CLAUDE_PLUGIN_ROOT}/references/kimi-protocol.md`) for the full flow — config resolution (Section 1), the Metered Invocation (Section 6), and Token Metering (Section 7). `--second-opinion` in `$ARGUMENTS` is a no-op for enabling; accepted for backward compatibility. The second engine is skipped (noted in metadata, never a hard failure) only when the provider is `none`, the CLI is unavailable, or the per-run token budget is reached.
+
+**Fanout-specific handling.** Emit the second engine's findings under a dedicated **Second Opinion ({provider})** section alongside the judge verdict — do **not** merge it into the judge's findings list automatically. Apply Section 12's "stricter verdict wins" rule: if the judge says `APPROVED` but the second engine flags criticals that survive the hallucination filter, downgrade the verdict to `BLOCKED` and surface the disagreement at the top of the output.
+
+### Step 4: PR Posting Gate
+
+When `/seamark:review-fanout` is invoked directly by the user (not as a phase of `/seamark:develop`) against a GitHub PR the user did not author, publish the review to the PR. In every other invocation mode the review remains chat-only.
+
+For fanout, the `{Findings block}` in the body template refers to the judge-reconciled merged list (the same list shown in chat under `### Findings`) — not the per-lens output.
+
+**Detection.** Walk up from the current working directory looking for `.seamark/DEVELOP_ACTIVE`. If that file exists with a `current_phase:` line, the review is pipeline-invoked — **skip this step entirely**. Otherwise, the review is direct-invocation. Continue.
+
+The remaining checks all apply only when the resolved target is a GitHub PR URL (or a PR number resolvable via `gh pr view`). For non-PR targets (local diff, commit SHA, file path), skip this step.
+
+**Suppression gates (in order; any positive match skips the post).** Run the shared gate script in `${CLAUDE_PLUGIN_ROOT}/references/review-post-gate.md` and honor its `SKIP=1` outcome as defined there.
+
+**Body template.** When posting, the body MUST begin with the HTML signature, followed by the same review content printed in chat:
+
+```
+<!-- seamark:review:posted -->
+### /seamark:review-fanout report
+
+{Review Metadata block}
+
+{Findings block}
+
+{Discarded Findings block}
+
+{Pre-Existing Gaps block}
+
+**Verdict:** {BLOCKED | APPROVED WITH WARNINGS | APPROVED}
+
+<sub>Posted by /seamark:review-fanout.</sub>
+```
+
+**Posting branch.**
+
+- If verdict is `APPROVED` AND merged findings count (after judge re-verification) is zero:
+  ```bash
+  gh pr review "$PR_URL" --approve --body "$BODY"
+  ```
+- Otherwise (any other verdict, OR `APPROVED` with non-zero findings):
+  ```bash
+  gh pr comment "$PR_URL" --body "$BODY"
+  ```
+
+**Failure handling.** Any non-zero exit from `gh pr review --approve` (HTTP 422 own-PR, 403 branch-protection, 404, network) falls back to `gh pr comment` with the same body, and the fallback is noted in chat. Any non-zero exit from `gh pr comment` is logged in chat and the chat review is still printed in full. Posting failures NEVER block the chat output and NEVER change the verdict.
+
+**Idempotence note.** The `<!-- seamark:review:posted -->` signature is the sole idempotence guard. A repeated invocation against the same PR after a successful post will detect the prior signature and skip — by design. To force a new post (e.g., the code has changed materially), edit out the prior signature in GitHub's UI, or delete the prior comment, then re-run.
+
+## Output
+
+Return in chat only. Format:
+
+### Review Metadata
+
+- **Footprint**: {tier}
+- **Lenses spawned**: {list}
+- **Findings per lens**: security:N, architecture:N, ...
+- **Merged findings**: N after dedup
+- **Re-verified critical+high**: N of M survived
+- **Second opinion**: {provider + invocation mode} — {agree | disagree with Claude judge} / none — {disabled | unavailable | budget reached}
+- **Second-engine tokens**: {run total from the meter} / {token_budget}
+
+### Findings
+
+Grouped by merged severity (critical → low). For each:
+
+- **Title**
+- **Severity** / **Confidence**
+- **Location**: `file:line`
+- **Flagged by**: {lens names} — shows which lenses agreed
+- **Evidence**: verbatim snippet
+- **Why it matters**
+- **Suggested fix** (optional, only if obvious)
+
+### Cross-Lens Findings
+
+Findings only visible by correlating two or more lenses. These are the highest-value output of fanout; call them out explicitly.
+
+### Discarded
+
+Brief list of findings that failed judge re-verification, with reason.
+
+### Pre-Existing Gaps
+
+Append to `.seamark/GAPS.md`.
+
+### Verdict
+
+- `BLOCKED` — any unresolved critical
+- `APPROVED WITH WARNINGS` — non-critical issues only
+- `APPROVED` — clean
+- `N/A` — no change set to review (empty diff, nothing staged, or no resolved target)
+
+## Learning Signal
+
+After the judge produces the verdict, append one JSON line to
+`~/.claude/seamark-learning/signals/pipeline-events.jsonl` with the file tools —
+never a Bash `echo`, matching the append convention in `/seamark:develop`:
+
+```json
+{"timestamp":"<ISO-8601 UTC>","type":"review_precision","project":"<repo dir basename>","skill":"review-fanout","findings_total":M,"findings_survived":N,"findings_merged":G,"findings_dismissed":D,"verdict":"BLOCKED|APPROVED WITH WARNINGS|APPROVED|N/A"}
+```
+
+The counts partition every finding the lenses returned, so `M = N + G + D`.
+Each maps onto a number already stated in Review Metadata — do not compute a
+new aggregate:
+
+- `findings_total` — the sum of **Findings per lens**, before dedup and
+  before judge re-verification.
+- `findings_survived` — **Merged findings** after dedup, minus anything the
+  judge discarded. This is the count shown under Findings.
+- `findings_merged` — how many findings dedup folded into another, that is
+  the sum of **Findings per lens** minus **Merged findings**. Lens agreement
+  is the point of fanout, so merges must never be counted as dismissals.
+- `findings_dismissed` — findings that failed judge re-verification, listed
+  under Discarded.
+
+When the second engine ran (provider `codex` or `kimi`), append a second
+line recording whether the stricter-verdict rule changed the outcome:
+
+```json
+{"timestamp":"<ISO-8601 UTC>","type":"engine_disagreement","project":"<repo dir basename>","provider":"codex|kimi","claude_verdict":"<verdict>","engine_verdict":"<verdict>","final_verdict":"<verdict>","stricter_applied":true|false}
+```
+
+Set `stricter_applied` to `true` only when the disagreement rule actually
+downgraded a more permissive verdict.
+
+Signal writing is non-blocking. A failed append never changes the verdict,
+never fails the review, and is reported as one line in chat.
+
+The signals file is global and concurrent `/seamark:*` sessions append to it at
+once. Build the whole record first and append it as one complete line in a
+single write; never rewrite or reflow lines that are already in the file.
+
+## Lens Prompt Templates
+
+Use the templates in `${CLAUDE_PLUGIN_ROOT}/references/lens-templates.md` as the `prompt` field when spawning each lens via the Agent tool. The reference file contains one template per lens (security, architecture, tests, performance, migrations, observability, api-contracts, compliance) with focus areas, method, and required output format. Read the matching section for each lens you spawn — do not duplicate the template here.
+
+## Ultracode
+
+When the Workflow tool is available in the session, run the lens fan-out and the per-finding verification as one Workflow script instead of individual Agent calls. This instruction is the orchestration opt-in; do not wait for an ultracode keyword from the user. Keep the lens prompts, lens blindness, and the judge pass unchanged — the script only makes the fan-out deterministic. When the Workflow tool is absent, use the Agent-based fan-out above.
+
+## Rules
+
+- Apply `${CLAUDE_PLUGIN_ROOT}/rules/rigor.md` to every lens and the judge. No shortcuts: never spawn lenses serially to "save context", never let a lens emit a finding without `file:line` evidence + verbatim Read snippet, never let the more permissive second-engine/judge verdict win silently. Use tools fully: lenses Read every cited file in their lane, the judge Reads every cross-lens conflict before resolving it. Do not compress reasoning to save tokens — fanout is breadth-first by design, and collapsing it defeats the pattern.
+- Apply `${CLAUDE_PLUGIN_ROOT}/rules/self-serve.md` before any user-facing question (the second-engine passes, Jira fallbacks). Resolve `[FACTUAL]` residues via Read/Grep/Glob/Bash/MCP; only `[USER-INTENT]` questions reach the user, each prefixed `[USER-INTENT]`.
+- Lenses run in **parallel and blind**. Breaking either property breaks the pattern.
+- Every lens applies `${CLAUDE_PLUGIN_ROOT}/rules/verification.md`. No exceptions.
+- Judge re-verifies every critical and high finding. No exceptions.
+- Spawn only lenses the diff justifies. Empty lenses waste tokens and dilute the judge pass.
+- Do not create separate review files. Output is chat-only unless the user asks otherwise.
+- If any lens returns zero findings, say so explicitly in the metadata — silence is not a pass.

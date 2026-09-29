@@ -1,0 +1,12 @@
+# pipeline runtime state — created per-repo when the pipeline runs, never published
+.seamark/
+
+# editor / OS / python noise
+.DS_Store
+*.bak
+*.swp
+__pycache__/
+*.pyc
+
+# claude plugin eval run output — every run writes a timestamped report here
+evals/results/
