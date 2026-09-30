@@ -26,7 +26,7 @@
 
 AI can write the code. But it guesses what you meant.
 
-<p align="center"><img src="assets/loop-guess.webp" alt="A code card types a CSV exporter that joins fields with commas. go test fails: the name Smith, Jo splits into 2 columns. A red badge reads: shipped a guess." width="88%"></p>
+<p align="center"><img src="assets/loop-why.webp" alt="A code card types a CSV exporter that joins fields with commas, and go test fails: the name Smith, Jo splits into 2 columns. Then the same request runs through /seamark:develop: refine asks about names with commas, plan, implement with csv.NewWriter, review with 0 critical, and verify shows Smith, Jo in 1 column. The run ends PASSED with a green badge." width="88%"></p>
 
 Seamark puts gates between the request and the code. Every change goes through five phases in order: refine, plan, implement, review, and verify. A hook enforces the order, so the gates are not a suggestion to the model.
 
