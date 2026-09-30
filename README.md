@@ -43,7 +43,7 @@ The model writes the code. Seamark makes it prove it.
 This repository is a Claude Code plugin marketplace. In Claude Code:
 
 ```text
-/plugin marketplace add milorad-teodorovic/seamark
+/plugin marketplace add milaroid/seamark
 /plugin install seamark@seamark
 /reload-plugins
 ```
@@ -329,7 +329,7 @@ current persistence policy; retain that failure until the command behavior is fi
 
 <p align="center"><img src="assets/loop-status.webp" alt="The Claude Code statusline during a Seamark run: the Seamark mark, the folder and branch, the phase with five progress dots, tasks, usage bars for context, 5-hour, and weekly limits, and a Codex burn row." width="100%"></p>
 
-Install it from this marketplace with `/plugin install seamark-status@seamark`, then run `/seamark-status:setup`. The code and the full reference are in [milorad-teodorovic/seamark-status](https://github.com/milorad-teodorovic/seamark-status).
+Install it from this marketplace with `/plugin install seamark-status@seamark`, then run `/seamark-status:setup`. The code and the full reference are in [milaroid/seamark-status](https://github.com/milaroid/seamark-status).
 
 ## License
 
