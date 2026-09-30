@@ -26,7 +26,7 @@
 
 AI can write the code. But it guesses what you meant.
 
-<p align="center"><img src="assets/loop-guess.webp" alt="A code card types a CSV exporter that joins fields with commas. go test fails: the name Smith, Jo splits into 2 columns. A red badge reads: shipped a guess." width="88%"></p>
+<p align="center"><img src="assets/loop-why.webp" alt="A code card types a CSV exporter that joins fields with commas, and go test fails: the name Smith, Jo splits into 2 columns. Then the same request runs through /seamark:develop: refine asks about names with commas, plan, implement with csv.NewWriter, review with 0 critical, and verify shows Smith, Jo in 1 column. The run ends PASSED with a green badge." width="88%"></p>
 
 Seamark puts gates between the request and the code. Every change goes through five phases in order: refine, plan, implement, review, and verify. A hook enforces the order, so the gates are not a suggestion to the model.
 
@@ -43,7 +43,7 @@ The model writes the code. Seamark makes it prove it.
 This repository is a Claude Code plugin marketplace. In Claude Code:
 
 ```text
-/plugin marketplace add milorad-teodorovic/seamark
+/plugin marketplace add milaroid/seamark
 /plugin install seamark@seamark
 /reload-plugins
 ```
@@ -329,7 +329,7 @@ current persistence policy; retain that failure until the command behavior is fi
 
 <p align="center"><img src="assets/loop-status.webp" alt="The Claude Code statusline during a Seamark run: the Seamark mark, the folder and branch, the phase with five progress dots, tasks, usage bars for context, 5-hour, and weekly limits, and a Codex burn row." width="100%"></p>
 
-Install it from this marketplace with `/plugin install seamark-status@seamark`, then run `/seamark-status:setup`. The code and the full reference are in [milorad-teodorovic/seamark-status](https://github.com/milorad-teodorovic/seamark-status).
+Install it from this marketplace with `/plugin install seamark-status@seamark`, then run `/seamark-status:setup`. The code and the full reference are in [milaroid/seamark-status](https://github.com/milaroid/seamark-status).
 
 ## License
 
