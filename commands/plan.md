@@ -1,7 +1,7 @@
 ---
 description: Create an actionable implementation plan grounded in repo patterns and user-confirmed decisions. Uses second-engine (Codex or Kimi, config-driven) sanity passes and a grill loop until zero gaps. Use after /seamark:refine or when starting a non-trivial change.
 argument-hint: [refined-request]
-model: claude-opus-5-5
+model: claude-sonnet-5-5
 effort: high
 allowed-tools: Read, Grep, Glob, Agent, Bash(git:*), Bash(codex exec:*), Bash(codex --version), Bash(kimi -p:*), Bash(kimi --version), Bash(mkdir:*), Bash(rm -f .seamark/handoff/:*), Bash(rm -rf .seamark/handoff/:*)
 ---
@@ -71,7 +71,7 @@ The Metered Invocation (Section 6), Operating-Rules Preamble (Section 4), Secret
 
 #### Observation Gathering
 
-Explore the codebase — read the request, map relevant code paths, classify repo health, identify existing patterns. When the codebase map would span more than three searches, spawn `Explore` subagent(s) (`model: haiku`) for the breadth sweep; keep the synthesis, grilling, and the worktree `/seamark:research` spawn on the orchestrator's `opus`.
+Explore the codebase — read the request, map relevant code paths, classify repo health, identify existing patterns. When the codebase map would span more than three searches, spawn `Explore` subagent(s) (`model: haiku`) for the breadth sweep; keep the synthesis, grilling, and the worktree `/seamark:research` spawn on the orchestrator's own model.
 
 Present all findings as `[OBSERVATION]`:
 

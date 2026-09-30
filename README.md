@@ -103,7 +103,7 @@ Run together by `/seamark:develop`, or individually. Each is a real Skill with i
 | # | Command | What it does | Model |
 |:-:|---------|--------------|:-----:|
 | ① | `/seamark:refine` | Turns a raw request into a spec. It restates the goal, then asks bounded-menu questions until no decision is open. | Opus 5.5 |
-| ② | `/seamark:plan` | Builds the implementation plan. When a second engine (Codex or Kimi) is set, it checks the plan too. Planning continues until no gap is open. | Opus 5.5 |
+| ② | `/seamark:plan` | Builds the implementation plan. When a second engine (Codex or Kimi) is set, it checks the plan too. Planning continues until no gap is open. | Sonnet 5.5 |
 | ③ | `/seamark:implement` | Writes code **to the approved plan only**, in the repo's own patterns. A plan defect goes back to the plan stage. | Opus 5.5 |
 | ④ | `/seamark:review` · `/seamark:review-fanout` | Reviews with `file:line` evidence. Small diffs get one sequential review. Large diffs get blind parallel lenses (security, architecture, tests, performance, migrations, observability, API contracts, compliance) and a judge. | Opus 5.5 |
 | ⑤ | `/seamark:verify` | Runs a test-and-fix loop until the exit predicate holds: tests green, no critical finding, progress logged, and spec criteria met. The 3-loop cap ends as `BLOCKED`, never `PASSED`. | Sonnet 5.5 |
