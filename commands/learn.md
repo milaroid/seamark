@@ -149,7 +149,7 @@ last scoring run:
 - an `outcome` with `verdict` `BLOCKED`
 
 Before you propose a case, find the suite: an `evals/suite.json` in the
-m-pipeline source checkout. Read its case names and each case's `prompt.md`.
+Seamark source checkout. Read its case names and each case's `prompt.md`.
 Skip a class that an existing case already covers. When no suite is found,
 propose the cases anyway and mark each one `coverage unchecked`. For each
 remaining class, write:

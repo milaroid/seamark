@@ -13,7 +13,7 @@
       "name": "seamark-status",
       "source": {
         "source": "github",
-        "repo": "milorad-teodorovic/m-statusline",
+        "repo": "milorad-teodorovic/seamark-status",
         "sha": "f440e1b5eaecc38a79aa5ac1fca16a40ef611502"
       },
       "description": "Claude Code statusline with the Seamark mark, git and PR state, the live Seamark phase, and pace-aware usage bars. Single Python file, standard library only. Run /seamark-status:setup once to wire it into settings.json."
