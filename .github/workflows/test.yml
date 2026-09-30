@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Run the hook tests, the grader tests, and the fixture preflight
+        run: python3 evals/run.py --profile static
+      - name: Install Claude Code
+        run: npm install --global @anthropic-ai/claude-code@2.1.286
+      - name: Validate the marketplace
+        run: claude plugin validate .
+      - name: Validate the plugin
+        run: claude plugin validate .claude-plugin/plugin.json
