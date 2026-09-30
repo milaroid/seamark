@@ -13,6 +13,7 @@ This file lists the changes in each version of the `seamark` plugin. The version
 
 ### Fixed
 
+- The phase hook runs when the plugin install path contains a space. The hook command now quotes `${CLAUDE_PLUGIN_ROOT}`. Before this fix, the shell split the path, the command exited 127, and the phase gate did not run.
 - `/seamark:learn` refers to the Seamark source checkout, not the old `m-pipeline` name. (#8)
 
 ### Added
