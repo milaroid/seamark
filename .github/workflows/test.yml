@@ -30,4 +30,4 @@ jobs:
       - name: Validate the marketplace
         run: claude plugin validate .
       - name: Validate the plugin
-        run: claude plugin validate .claude-plugin/plugin.json
+        run: claude plugin validate --strict .claude-plugin/plugin.json
