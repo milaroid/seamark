@@ -8,6 +8,7 @@
 
 **A gated delivery pipeline for [Claude Code](https://docs.claude.com/en/docs/claude-code).**
 
+[![Tests](https://github.com/milaroid/seamark/actions/workflows/test.yml/badge.svg)](https://github.com/milaroid/seamark/actions/workflows/test.yml)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)
 ![Commands](https://img.shields.io/badge/commands-16-0e7c7b)
 ![Skills](https://img.shields.io/badge/expert%20skills-5-0e7c7b)
@@ -60,6 +61,15 @@ The engineering rules that the commands use ship in `rules/` and load through `$
 ```
 
 See [Statusline](#statusline) for what it shows.
+
+**Update.** Auto-update is off for third-party marketplaces, so Seamark does not update by itself. To get a new version, run these commands in your shell, then run `/reload-plugins` in an open session:
+
+```sh
+claude plugin marketplace update seamark
+claude plugin update seamark@seamark
+```
+
+To update automatically, run `/plugin`, open the **Marketplaces** tab, select `seamark`, and select **Enable auto-update**. The [changelog](CHANGELOG.md) lists the changes in each version.
 
 ---
 
